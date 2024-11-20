@@ -1,0 +1,18 @@
+name = "ModalTableau"
+version = "0.1.0"
+defaultTargets = ["modaltableau"]
+
+[leanOptions]
+linter.flexible = true
+
+[[lean_lib]]
+name = "ModalTableau"
+
+[[lean_exe]]
+name = "modaltableau"
+root = "Main"
+
+[[require]]
+name = "foundation"
+scope = "FormalizedFormalLogic"
+version = "git#master"
