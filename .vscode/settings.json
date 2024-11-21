@@ -1,0 +1,17 @@
+{
+  "editor.fontFamily": "'JuliaMono', monospace",
+  "lean4.input.customTranslations": {
+    "land": "⋏",
+    "lor": "⋎",
+    "limp": "➝",
+    "lnot": "∼",
+    "liff": "⭤",
+    // Logic
+    "S4": "𝐒𝟒",
+    "S5": "𝐒𝟓",
+    "GL": "𝐆𝐋",
+    "Grz": "𝐆𝐫𝐳",
+    "S4Ext": "𝝈",
+    "S4GrzExt": "𝝉",
+  }
+}

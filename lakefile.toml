@@ -1,9 +1,6 @@
 name = "ModalTableau"
 version = "0.1.0"
-defaultTargets = ["modaltableau"]
-
-[leanOptions]
-linter.flexible = true
+defaultTargets = ["ModalTableau"]
 
 [[lean_lib]]
 name = "ModalTableau"
