@@ -1,3 +1,4 @@
--- This module serves as the root of the `ModalTableau` library.
--- Import modules here that should be built as part of the library.
 import ModalTableau.Basic
+
+import ModalTableau.Gentzen.Basic
+import ModalTableau.Gentzen.Soundness

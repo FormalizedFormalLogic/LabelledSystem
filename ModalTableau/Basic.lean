@@ -18,6 +18,8 @@ namespace LabelTerm
 
 def evaluated {M : Kripke.Model} (f : Assignment M) : LabelTerm → Prop := λ ⟨x, y⟩ => M.Rel (f x) (f y)
 
+def replace (σ : Label → Label) : LabelTerm → LabelTerm := λ (x, y) => ⟨σ x, σ y⟩
+
 end LabelTerm
 
 
@@ -29,6 +31,8 @@ deriving DecidableEq, Repr
 namespace LabelledFormula
 
 notation:95 x " ∶ " φ => LabelledFormula.mk x φ
+
+def labelReplace (σ : Label → Label) : LabelledFormula → LabelledFormula := λ ⟨x, φ⟩ => ⟨σ x, φ⟩
 
 def Satisfies (M : Kripke.Model) (f : Assignment M) : LabelledFormula → Prop := λ (x ∶ φ) => (f x) ⊧ φ
 
