@@ -53,7 +53,7 @@ end Sequent
 
 inductive Derivation : Sequent → Type _
 | ax {Γ Δ : SequentPart} {x} {a} : Derivation (⟨⟨x, .atom a⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, .atom a⟩ :: Δ.fmls, Δ.rels⟩)
--- | bot {Γ Δ : SequentPart} {x} : Derivation (Γ ⟹ ⟨⟨x, ⊥⟩ :: Δ.fmls, Δ.rels⟩)
+| bot {Γ Δ : SequentPart} {x} : Derivation (⟨⟨x, ⊥⟩ :: Γ.fmls, Γ.rels⟩ ⟹ Δ)
 | impL {Γ Δ : SequentPart} {x} {φ ψ} :
     Derivation (⟨Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, φ⟩ :: Δ.fmls, Δ.rels⟩) →
     Derivation (⟨⟨x, ψ⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩) →
@@ -68,15 +68,6 @@ inductive Derivation : Sequent → Type _
     x ≠ y → Γ.isFreshLabel y → Δ.isFreshLabel y →
     Derivation (⟨Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨⟨y, φ⟩ :: Δ.fmls, Δ.rels⟩) →
     Derivation (⟨Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, □φ⟩ :: Δ.fmls, Δ.rels⟩)
-/-
-| diaL {Γ Δ : SequentPart} {x y} {φ} :
-    x ≠ y → Γ.isFreshLabel y → Δ.isFreshLabel y →
-    Derivation (⟨⟨x, φ⟩ :: Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨⟨x, ◇φ⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩)
-| diaR {Γ Δ : SequentPart} {x y} {φ} :
-    Derivation (⟨Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨⟨x, ◇φ⟩ :: ⟨y, φ⟩ :: Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨⟨x, ◇φ⟩ :: Δ.fmls, Δ.rels⟩)
--/
 prefix:70 "⊢ᵍ " => Derivation
 
 abbrev Derivable (S : Sequent) : Prop := Nonempty (⊢ᵍ S)
@@ -91,6 +82,9 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
   | ax =>
     rintro M f ⟨hΓ, hX⟩;
     simp_all;
+  | bot =>
+    rintro M f ⟨hΓ, hX⟩;
+    simp at hΓ;
   | @impL Γ Δ x φ ψ d₁ d₂ ih₁ ih₂ =>
     rintro M f ⟨hΓ, hX⟩;
     have ⟨hΓ₁, hΓ₂⟩ : f ⊧ (x ∶ φ ➝ ψ) ∧ ∀ a ∈ Γ.fmls, f ⊧ a := by simpa using hΓ;
