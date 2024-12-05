@@ -12,13 +12,23 @@ abbrev Label := ℕ
 def Assignment (M : Kripke.Model) := Label → M.World
 
 
+abbrev LabelReplace := Label → Label
+
+namespace LabelReplace
+
+abbrev specific (x : Label) (y : Label) : LabelReplace := λ z => if z = x then y else z
+infixr:90 "⧸" => specific
+
+end LabelReplace
+
+
 abbrev LabelTerm := Label × Label
 
 namespace LabelTerm
 
-def evaluated {M : Kripke.Model} (f : Assignment M) : LabelTerm → Prop := λ ⟨x, y⟩ => M.Rel (f x) (f y)
+def evaluated {M : Kripke.Model} (f : Assignment M) : LabelTerm → Prop := λ ⟨x, y⟩ => (f x) ≺ (f y)
 
-def replace (σ : Label → Label) : LabelTerm → LabelTerm := λ (x, y) => ⟨σ x, σ y⟩
+def replace (σ : LabelReplace) : LabelTerm → LabelTerm := λ (x, y) => ⟨σ x, σ y⟩
 
 end LabelTerm
 
@@ -33,13 +43,14 @@ namespace LabelledFormula
 notation:95 x " ∶ " φ => LabelledFormula.mk x φ
 
 def labelReplace (σ : Label → Label) : LabelledFormula → LabelledFormula := λ ⟨x, φ⟩ => ⟨σ x, φ⟩
+notation lφ "⟦" σ "⟧" => labelReplace σ lφ
+
 
 def Satisfies (M : Kripke.Model) (f : Assignment M) : LabelledFormula → Prop := λ (x ∶ φ) => (f x) ⊧ φ
 
 namespace Satisfies
 
 protected instance semantics {M : Kripke.Model} : Semantics (LabelledFormula) (Assignment M) := ⟨fun x ↦ LabelledFormula.Satisfies M x⟩
-
 
 variable {M : Kripke.Model} {f : Assignment M}
 variable {x y : Label}
