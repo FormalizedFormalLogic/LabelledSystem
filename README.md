@@ -1,1 +1,1 @@
-# ModalTableau
+# Labelled Systems for Modal Logic

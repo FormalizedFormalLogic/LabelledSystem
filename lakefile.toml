@@ -1,9 +1,10 @@
-name = "ModalTableau"
+name = "LabelledSystem"
 version = "0.1.0"
-defaultTargets = ["ModalTableau"]
+defaultTargets = ["LabelledSystem"]
+description = "Labelled Systems for Modal Logic"
 
 [[lean_lib]]
-name = "ModalTableau"
+name = "LabelledSystem"
 
 [[lean_exe]]
 name = "modaltableau"

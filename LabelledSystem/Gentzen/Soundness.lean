@@ -1,4 +1,4 @@
-import ModalTableau.Gentzen.Basic
+import LabelledSystem.Gentzen.Basic
 
 namespace LO.Modal.Labelled.Gentzen
 

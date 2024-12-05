@@ -1,5 +1,5 @@
 import Foundation.Modal.Kripke.Basic
-import ModalTableau.Basic
+import LabelledSystem.Basic
 
 namespace LO.Modal
 
@@ -15,7 +15,7 @@ structure SequentPart where
 
 namespace SequentPart
 
-def isFreshLabel (x : Label) (Γ : SequentPart) : Prop := (x ∉ Γ.fmls.map LabelledFormula.label) ∧ (∀ y, (x, y) ∉ Γ.rels) ∧ (∀ y, (y, x) ∉ Γ.rels)
+@[simp] def isFreshLabel (x : Label) (Γ : SequentPart) : Prop := (x ∉ Γ.fmls.map LabelledFormula.label) ∧ (∀ y, (x, y) ∉ Γ.rels) ∧ (∀ y, (y, x) ∉ Γ.rels)
 
 abbrev replaceLabel (σ : Label → Label) (Γ : SequentPart) : SequentPart :=
   ⟨Γ.fmls.map (LabelledFormula.labelReplace σ), Γ.rels.map (LabelTerm.replace σ)⟩
@@ -126,7 +126,7 @@ def axiomK : ⊢ᵍ ⟨⟨∅, ∅⟩, ⟨{x ∶ □(φ ➝ ψ) ➝ □φ ➝ �
   letI y : Label := x + 1;
   apply impR (Δ := ⟨_, _⟩);
   apply impR;
-  apply boxR (y := y) (by simp [y]) (by simp [SequentPart.isFreshLabel]) (by simp [SequentPart.isFreshLabel]);
+  apply boxR (y := y) (by simp [y]) (by simp) (by simp);
   suffices ⊢ᵍ (⟨(x ∶ □φ) ::ₘ {x ∶ □(φ ➝ ψ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by simpa;
   apply boxL (Γ := ⟨_, _⟩);
   suffices ⊢ᵍ (⟨(x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ) ::ₘ {(x ∶ □φ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by
@@ -175,7 +175,7 @@ end Weakening
 
 def necessitation (d : ⊢ᵍ ⟨⟨∅, ∅⟩, ⟨{x ∶ φ}, ∅⟩⟩) : ⊢ᵍ ⟨⟨∅, ∅⟩, ⟨{x ∶ □φ}, ∅⟩⟩ := by
   letI y : Label := x + 1;
-  apply boxR (Δ := ⟨∅, ∅⟩) (y := y) (by simp [y]) (by simp [SequentPart.isFreshLabel]) (by simp [SequentPart.isFreshLabel]);
+  apply boxR (Δ := ⟨∅, ∅⟩) (y := y) (by simp [y]) (by simp) (by simp);
   apply wkRelL';
   simpa [SequentPart.replaceLabel, LabelledFormula.labelReplace, LabelReplace.specific] using replaceLabel' d (x ⧸ y);
 
