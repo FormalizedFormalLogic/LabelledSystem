@@ -13,3 +13,6 @@ root = "Main"
 name = "foundation"
 scope = "FormalizedFormalLogic"
 version = "git#master"
+
+[leanOptions]
+linter.flexible = true
