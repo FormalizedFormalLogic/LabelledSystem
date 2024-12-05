@@ -10,9 +10,8 @@ namespace Gentzen
 open Formula
 
 structure SequentPart where
-  fmls : List LabelledFormula
-  rels : List LabelTerm
-deriving Repr
+  fmls : Multiset LabelledFormula
+  rels : Multiset LabelTerm
 
 namespace SequentPart
 
@@ -32,7 +31,6 @@ end SequentPart
 structure Sequent where
   pre : SequentPart
   pos : SequentPart
-deriving Repr
 
 infix:50 " ⟹ " => Sequent.mk
 
@@ -52,22 +50,22 @@ end Sequent
 
 
 inductive Derivation : Sequent → Type _
-| ax {Γ Δ : SequentPart} {x} {a} : Derivation (⟨⟨x, .atom a⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, .atom a⟩ :: Δ.fmls, Δ.rels⟩)
-| bot {Γ Δ : SequentPart} {x} : Derivation (⟨⟨x, ⊥⟩ :: Γ.fmls, Γ.rels⟩ ⟹ Δ)
+| initA {Γ Δ : SequentPart} {x} {a} : Derivation (⟨insert (x ∶ atom a) Γ.fmls, Γ.rels⟩ ⟹ ⟨insert (x ∶ atom a) Δ.fmls, Δ.rels⟩)
+| bot {Γ Δ : SequentPart} {x} : Derivation (⟨insert (x ∶ ⊥) Γ.fmls, Γ.rels⟩ ⟹ Δ)
 | impL {Γ Δ : SequentPart} {x} {φ ψ} :
-    Derivation (⟨Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, φ⟩ :: Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨⟨x, ψ⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨⟨x, φ ➝ ψ⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩)
+    Derivation (Γ ⟹ ⟨insert (x ∶ φ) Δ.fmls, Δ.rels⟩) →
+    Derivation (⟨insert (x ∶ ψ) Γ.fmls, Γ.rels⟩ ⟹ Δ) →
+    Derivation (⟨insert (x ∶ φ ➝ ψ) Γ.fmls, Γ.rels⟩ ⟹ Δ)
 | impR {Γ Δ : SequentPart} {x} {φ ψ} :
-    Derivation (⟨⟨x, φ⟩ :: Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, ψ⟩ :: Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, φ ➝ ψ⟩ :: Δ.fmls, Δ.rels⟩)
+    Derivation (⟨insert (x ∶ φ) Γ.fmls, Γ.rels⟩ ⟹ ⟨insert (x ∶ ψ) Δ.fmls, Δ.rels⟩) →
+    Derivation (Γ ⟹ ⟨insert (x ∶ φ ➝ ψ) Δ.fmls, Δ.rels⟩)
 | boxL {Γ Δ : SequentPart} {x y} {φ} :
-    Derivation (⟨⟨x, □φ⟩ :: ⟨y, φ⟩ :: Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨⟨x, □φ⟩ :: Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩)
+    Derivation (⟨insert (x ∶ □φ) $ insert (y ∶ φ) Γ.fmls, insert (x, y) Γ.rels⟩ ⟹ Δ) →
+    Derivation (⟨insert (x ∶ □φ) Γ.fmls, insert (x, y) Γ.rels⟩ ⟹ Δ)
 | boxR {Γ Δ : SequentPart} {x y} {φ} :
     x ≠ y → Γ.isFreshLabel y → Δ.isFreshLabel y →
-    Derivation (⟨Γ.fmls, ⟨x, y⟩ :: Γ.rels⟩ ⟹ ⟨⟨y, φ⟩ :: Δ.fmls, Δ.rels⟩) →
-    Derivation (⟨Γ.fmls, Γ.rels⟩ ⟹ ⟨⟨x, □φ⟩ :: Δ.fmls, Δ.rels⟩)
+    Derivation (⟨Γ.fmls, insert (x, y) Γ.rels⟩ ⟹ ⟨insert (y ∶ φ) Δ.fmls, Δ.rels⟩) →
+    Derivation (Γ ⟹ ⟨insert (x ∶ □φ) Δ.fmls, Δ.rels⟩)
 prefix:70 "⊢ᵍ " => Derivation
 
 abbrev Derivable (S : Sequent) : Prop := Nonempty (⊢ᵍ S)
@@ -79,7 +77,7 @@ section
 theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : Assignment M), S.Satisfies M f := by
   intro d;
   induction d with
-  | ax =>
+  | initA =>
     rintro M f ⟨hΓ, hX⟩;
     simp_all;
   | bot =>
@@ -199,7 +197,7 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
       have : ¬(f a) ≺ (f b) := hΔ₁ a b h₁;
       contradiction;
 
-theorem soundness_fml : ⊢ᵍ! ⟨⟨[], []⟩, ⟨[default ∶ φ], []⟩⟩ → ∀ (M : Kripke.Model), ∀ (f : Assignment M), f default ⊧ φ := by
+theorem soundness_fml : ⊢ᵍ! ⟨⟨{}, {}⟩, ⟨{default ∶ φ}, {}⟩⟩ → ∀ (M : Kripke.Model), ∀ (f : Assignment M), f default ⊧ φ := by
   rintro ⟨d⟩ M f;
   simpa [Sequent.Satisfies] using soundness d M f
 
