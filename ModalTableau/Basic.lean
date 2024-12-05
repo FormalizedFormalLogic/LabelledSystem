@@ -9,18 +9,14 @@ namespace Labelled
 
 abbrev Label := ℕ
 
-namespace Label
-
 def Assignment (M : Kripke.Model) := Label → M.World
-
-end Label
 
 
 abbrev LabelTerm := Label × Label
 
 namespace LabelTerm
 
-def evaluated {M : Kripke.Model} (f : Label.Assignment M) : LabelTerm → Prop := λ ⟨x, y⟩ => M.Rel (f x) (f y)
+def evaluated {M : Kripke.Model} (f : Assignment M) : LabelTerm → Prop := λ ⟨x, y⟩ => M.Rel (f x) (f y)
 
 end LabelTerm
 
@@ -34,14 +30,14 @@ namespace LabelledFormula
 
 notation:95 x " ∶ " φ => LabelledFormula.mk x φ
 
-def Satisfies (M : Kripke.Model) (f : Label.Assignment M) : LabelledFormula → Prop := λ (x ∶ φ) => (f x) ⊧ φ
+def Satisfies (M : Kripke.Model) (f : Assignment M) : LabelledFormula → Prop := λ (x ∶ φ) => (f x) ⊧ φ
 
 namespace Satisfies
 
-protected instance semantics {M : Kripke.Model} : Semantics (LabelledFormula) (Label.Assignment M) := ⟨fun x ↦ LabelledFormula.Satisfies M x⟩
+protected instance semantics {M : Kripke.Model} : Semantics (LabelledFormula) (Assignment M) := ⟨fun x ↦ LabelledFormula.Satisfies M x⟩
 
 
-variable {M : Kripke.Model} {f : Label.Assignment M}
+variable {M : Kripke.Model} {f : Assignment M}
 variable {x y : Label}
 variable {φ ψ : Formula ℕ} {xφ: LabelledFormula}
 

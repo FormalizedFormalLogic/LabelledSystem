@@ -38,13 +38,13 @@ infix:50 " ⟹ " => Sequent.mk
 
 namespace Sequent
 
-abbrev Satisfies (M : Kripke.Model) (f : Label.Assignment M) : Sequent → Prop := λ ⟨Γ, Δ⟩ =>
+abbrev Satisfies (M : Kripke.Model) (f : Assignment M) : Sequent → Prop := λ ⟨Γ, Δ⟩ =>
   (∀ lφ ∈ Γ.fmls, f ⊧ lφ) ∧ (∀ r ∈ Γ.rels, r.evaluated f) →
   (∃ lφ ∈ Δ.fmls, f ⊧ lφ) ∨ (∃ r ∈ Δ.rels, r.evaluated f)
 
 namespace Satisfies
 
-protected instance semantics {M : Kripke.Model} : Semantics Sequent (Label.Assignment M) := ⟨fun x ↦ Satisfies M x⟩
+protected instance semantics {M : Kripke.Model} : Semantics Sequent (Assignment M) := ⟨fun x ↦ Satisfies M x⟩
 
 end Satisfies
 
@@ -79,11 +79,13 @@ inductive Derivation : Sequent → Type _
 -/
 prefix:70 "⊢ᵍ " => Derivation
 
-
 abbrev Derivable (S : Sequent) : Prop := Nonempty (⊢ᵍ S)
 prefix:70 "⊢ᵍ! " => Derivable
 
-lemma soundness {S : Sequent} : ⊢ᵍ S → ∀ M, ∀ f, S.Satisfies M f := by
+
+section
+
+theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : Assignment M), S.Satisfies M f := by
   intro d;
   induction d with
   | ax =>
@@ -154,7 +156,7 @@ lemma soundness {S : Sequent} : ⊢ᵍ S → ∀ M, ∀ f, S.Satisfies M f := by
     intro hΔ₂; push_neg at hΔ₂;
 
     intro w hw;
-    let g : Label.Assignment M := λ z => if z = y then w else f z;
+    let g : Assignment M := λ z => if z = y then w else f z;
 
     replace ih :
       (∀ lφ ∈ Γ.fmls, g ⊧ lφ) →
@@ -202,6 +204,12 @@ lemma soundness {S : Sequent} : ⊢ᵍ S → ∀ M, ∀ f, S.Satisfies M f := by
       have :  (f a) ≺ (f b) := by simpa [LabelTerm.evaluated, g, ha, hb] using h₂;
       have : ¬(f a) ≺ (f b) := hΔ₁ a b h₁;
       contradiction;
+
+theorem soundness_fml : ⊢ᵍ! ⟨⟨[], []⟩, ⟨[default ∶ φ], []⟩⟩ → ∀ (M : Kripke.Model), ∀ (f : Assignment M), f default ⊧ φ := by
+  rintro ⟨d⟩ M f;
+  simpa [Sequent.Satisfies] using soundness d M f
+
+end
 
 end Gentzen
 
