@@ -17,10 +17,6 @@ namespace SequentPart
 
 @[simp] def isFreshLabel (x : Label) (Γ : SequentPart) : Prop := (x ∉ Γ.fmls.map LabelledFormula.label) ∧ (∀ y, (x, y) ∉ Γ.rels) ∧ (∀ y, (y, x) ∉ Γ.rels)
 
-abbrev replaceLabel (σ : Label → Label) (Γ : SequentPart) : SequentPart :=
-  ⟨Γ.fmls.map (LabelledFormula.labelReplace σ), Γ.rels.map (LabelTerm.replace σ)⟩
-notation Γ "⟦" σ "⟧" => SequentPart.replaceLabel σ Γ
-
 /-
 instance : Decidable (isFreshLabel Γ x) := by
   simp [isFreshLabel];
@@ -33,6 +29,14 @@ lemma not_include_labelledFml_of_isFreshLabel (h : Γ.isFreshLabel x) : ∀ φ, 
 lemma not_include_relTerm_of_isFreshLabel₁ (h : Γ.isFreshLabel x) : ∀ y, (x, y) ∉ Γ.rels := by have := h.2; aesop;
 
 lemma not_include_relTerm_of_isFreshLabel₂ (h : Γ.isFreshLabel x) : ∀ y, (y, x) ∉ Γ.rels := by have := h.2.2; aesop;
+
+
+abbrev replaceLabel (σ : Label → Label) (Γ : SequentPart) : SequentPart :=
+  ⟨Γ.fmls.map (LabelledFormula.labelReplace σ), Γ.rels.map (LabelTerm.replace σ)⟩
+notation Γ "⟦" σ "⟧" => SequentPart.replaceLabel σ Γ
+
+abbrev add (Γ Δ : SequentPart) : SequentPart := ⟨Γ.fmls + Δ.fmls, Γ.rels + Δ.rels⟩
+instance : Add SequentPart := ⟨add⟩
 
 end SequentPart
 
@@ -59,8 +63,8 @@ end Sequent
 
 
 inductive Derivation : Sequent → Type _
-| axA {Γ Δ : SequentPart} {x} {a} : Derivation (⟨(x ∶ atom a) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ atom a) ::ₘ Δ.fmls, Δ.rels⟩)
-| axBot {Γ Δ : SequentPart} {x} : Derivation (⟨(x ∶ ⊥) ::ₘ  Γ.fmls, Γ.rels⟩ ⟹ Δ)
+| initAtom {Γ Δ : SequentPart} {x} {a} : Derivation (⟨(x ∶ atom a) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ atom a) ::ₘ Δ.fmls, Δ.rels⟩)
+| initBot {Γ Δ : SequentPart} {x} : Derivation (⟨(x ∶ ⊥) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)
 | impL {Γ Δ : SequentPart} {x} {φ ψ} :
     Derivation (Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) →
     Derivation (⟨(x ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ) →
@@ -77,17 +81,17 @@ inductive Derivation : Sequent → Type _
     Derivation (Γ ⟹ ⟨(x ∶ □φ) ::ₘ Δ.fmls, Δ.rels⟩)
 prefix:40 "⊢ᵍ " => Derivation
 
-export Derivation (axA axBot impL impR boxL boxR)
+export Derivation (initAtom initBot impL impR boxL boxR)
 
 abbrev Derivable (S : Sequent) : Prop := Nonempty (⊢ᵍ S)
 prefix:40 "⊢ᵍ! " => Derivable
 
 
-section height
+section Height
 
 def Derivation.height {S : Sequent} : ⊢ᵍ S → ℕ
-  | axA => 1
-  | axBot => 1
+  | initAtom => 1
+  | initBot => 1
   | impL d₁ d₂ => max d₁.height d₂.height + 1
   | impR d => d.height + 1
   | boxL d => d.height + 1
@@ -103,15 +107,21 @@ def DerivationWithHeight.ofDerivation (d : ⊢ᵍ S) : ⊢ᵍ[d.height] S := ⟨
 abbrev DerivableWithHeight (S : Sequent) (h : ℕ) : Prop := Nonempty (⊢ᵍ[h] S)
 notation:40 "⊢ᵍ[ " h " ]! " S => DerivableWithHeight S h
 
-end height
+end Height
 
 
-variable {Γ Δ : SequentPart}
 
-def axF : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) := by
+variable {Γ Γ₁ Γ₂ Δ Δ₁ Δ₂ : SequentPart}
+
+section
+
+end
+
+
+def initFml : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) := by
   induction φ using Formula.rec' generalizing Γ Δ x with
-  | hatom a => exact axA
-  | hfalsum => exact axBot
+  | hatom a => exact initAtom
+  | hfalsum => exact initBot
   | himp φ ψ ihφ ihψ =>
     apply impR;
     simpa [Multiset.cons_swap] using impL ihφ ihψ;
@@ -121,68 +131,68 @@ def axF : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ φ) ::�
     apply boxL;
     simpa [Multiset.cons_swap] using ih (Γ := ⟨(x ∶ □φ) ::ₘ Γ.fmls, _ ::ₘ Γ.rels⟩);
 
+def initFml' (x φ) (hΓ : (x ∶ φ) ∈ Γ.fmls) (hΔ : (x ∶ φ) ∈ Δ.fmls) : ⊢ᵍ Γ ⟹ Δ := by
+  suffices ⊢ᵍ (⟨Γ.fmls, Γ.rels⟩ ⟹ ⟨Δ.fmls, Δ.rels⟩) by simpa;
+  have eΓ := Multiset.cons_erase hΓ;
+  have eΔ := Multiset.cons_erase hΔ;
+  rw [←eΓ, ←eΔ];
+  simpa using initFml (Γ := ⟨Γ.fmls.erase (x ∶ φ), _⟩) (Δ := ⟨Δ.fmls.erase (x ∶ φ), _⟩);
 
-def axiomK : ⊢ᵍ ⟨⟨∅, ∅⟩, ⟨{x ∶ □(φ ➝ ψ) ➝ □φ ➝ □ψ}, ∅⟩⟩ := by
-  letI y : Label := x + 1;
-  apply impR (Δ := ⟨_, _⟩);
-  apply impR;
-  apply boxR (y := y) (by simp [y]) (by simp) (by simp);
-  suffices ⊢ᵍ (⟨(x ∶ □φ) ::ₘ {x ∶ □(φ ➝ ψ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by simpa;
-  apply boxL (Γ := ⟨_, _⟩);
-  suffices ⊢ᵍ (⟨(x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ) ::ₘ {(x ∶ □φ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by
-    have e : (x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ) ::ₘ {x ∶ □φ} = (x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ {x ∶ □(φ ➝ ψ)} := by sorry;
-    simpa [e];
-  apply boxL (x := x) (φ := φ ➝ ψ) (Γ := ⟨{y ∶ φ, x ∶ □φ}, _⟩);
-  suffices ⊢ᵍ (⟨(y ∶ φ ➝ ψ) ::ₘ {y ∶ φ, x ∶ □φ, x ∶ □(φ ➝ ψ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by
-    have e : (x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ ➝ ψ) ::ₘ (y ∶ φ) ::ₘ {x ∶ □φ} = (y ∶ φ ➝ ψ) ::ₘ {y ∶ φ, x ∶ □φ, x ∶ □(φ ➝ ψ)} := by sorry;
-    simpa [e];
-  apply impL (Γ := ⟨_, _⟩);
-  . simpa using axF (Γ := ⟨_, _⟩) (Δ := ⟨_, _⟩);
-  . simpa using axF (Γ := ⟨_, _⟩) (Δ := ⟨_, _⟩);
+section ReplaceLabel
 
-section replaceLabel
+def replaceLabelₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) (σ : Label → Label) : ⊢ᵍ[h] Γ⟦σ⟧ ⟹ Δ⟦σ⟧ := by sorry;
 
-def replaceLabel (d : ⊢ᵍ[h] Γ ⟹ Δ) (σ : Label → Label) : ⊢ᵍ[h] Γ⟦σ⟧ ⟹ Δ⟦σ⟧ := by sorry;
+def replaceLabel (d : ⊢ᵍ Γ ⟹ Δ) (σ : Label → Label) : ⊢ᵍ Γ⟦σ⟧ ⟹ Δ⟦σ⟧ := replaceLabelₕ (.ofDerivation d) σ |>.drv
 
-def replaceLabel' (d : ⊢ᵍ Γ ⟹ Δ) (σ : Label → Label) : ⊢ᵍ Γ⟦σ⟧ ⟹ Δ⟦σ⟧ := replaceLabel (.ofDerivation d) σ |>.drv
-
-end replaceLabel
+end ReplaceLabel
 
 
 section Weakening
 
-def wkFmlL (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := by sorry
+def wkFmlLₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := by sorry
 
-def wkFmlL' (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := wkFmlL (d := .ofDerivation d) |>.drv
-
-
-def wkRelL (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := by sorry
-
-def wkRelL' (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := wkRelL (d := .ofDerivation d) |>.drv
+def wkFmlL (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := wkFmlLₕ (d := .ofDerivation d) |>.drv
 
 
-def wkFmlR (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := by sorry
+def wkRelLₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := by sorry
 
-def wkFmlR' (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := wkFmlR (d := .ofDerivation d) |>.drv
+def wkRelL (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := wkRelLₕ (d := .ofDerivation d) |>.drv
 
 
-def wkRelR (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := by sorry
+def wkFmlRₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := by sorry
 
-def wkRelR' (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := wkRelR  (d := .ofDerivation d) |>.drv
+def wkFmlR (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := wkFmlRₕ (d := .ofDerivation d) |>.drv
+
+
+def wkRelRₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := by sorry
+
+def wkRelR (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := wkRelRₕ (d := .ofDerivation d) |>.drv
 
 end Weakening
 
 
-def necessitation (d : ⊢ᵍ ⟨⟨∅, ∅⟩, ⟨{x ∶ φ}, ∅⟩⟩) : ⊢ᵍ ⟨⟨∅, ∅⟩, ⟨{x ∶ □φ}, ∅⟩⟩ := by
-  letI y : Label := x + 1;
-  apply boxR (Δ := ⟨∅, ∅⟩) (y := y) (by simp [y]) (by simp) (by simp);
-  apply wkRelL';
-  simpa [SequentPart.replaceLabel, LabelledFormula.labelReplace, LabelReplace.specific] using replaceLabel' d (x ⧸ y);
+
+section Inv
+
+def implyRInvₕ (d : ⊢ᵍ[h] (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) : ⊢ᵍ[h] (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) := by sorry
+
+def implyRInv (d : ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) := implyRInvₕ (d := .ofDerivation d) |>.drv
+
+end Inv
+
+
+section Cut
+
+def cutRel (d₁ : ⊢ᵍ Γ₁ ⟹ ⟨Δ₁.fmls, (x, y) ::ₘ Δ₁.rels⟩) (d₂ : ⊢ᵍ ⟨Γ₂.fmls, (x, y) ::ₘ Γ₂.rels⟩ ⟹ Δ₂) : ⊢ᵍ (Γ₁ + Γ₂) ⟹ (Δ₁ + Δ₂) := by
+  sorry
+
+def cutFml (d₁ : ⊢ᵍ Γ₁ ⟹ ⟨(x ∶ φ) ::ₘ Δ₁.fmls, Δ₁.rels⟩) (d₂ : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ₂.fmls, Γ₂.rels⟩ ⟹ Δ₂) : ⊢ᵍ (Γ₁ + Γ₂) ⟹ (Δ₁ + Δ₂) := by
+  sorry
+
+end Cut
 
 
 end Gentzen
-
-
 
 end Labelled
 
