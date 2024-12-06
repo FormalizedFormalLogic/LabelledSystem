@@ -5,10 +5,10 @@ namespace LO.Modal.Labelled.Gentzen
 theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : Assignment M), S.Satisfies M f := by
   intro d;
   induction d with
-  | axA =>
+  | initAtom =>
     rintro M f ⟨hΓ, hX⟩;
     simp_all;
-  | axBot =>
+  | initBot =>
     rintro M f ⟨hΓ, hX⟩;
     simp at hΓ;
   | @impL Γ Δ x φ ψ d₁ d₂ ih₁ ih₂ =>
