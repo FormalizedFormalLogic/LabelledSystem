@@ -2,8 +2,7 @@ import LabelledSystem.Gentzen.Basic
 
 namespace LO.Modal.Labelled.Gentzen
 
-theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : Assignment M), S.Satisfies M f := by
-  intro d;
+theorem soundness {S : Sequent} (d : ⊢ᵍ S) : ∀ (M : Kripke.Model), ∀ (f : Assignment M), S.Satisfies M f := by
   induction d with
   | initAtom =>
     rintro M f ⟨hΓ, hX⟩;
@@ -11,9 +10,11 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
   | initBot =>
     rintro M f ⟨hΓ, hX⟩;
     simp at hΓ;
-  | @impL Γ Δ x φ ψ d₁ d₂ ih₁ ih₂ =>
+  | @impL S x φ ψ d₁ d₂ ih₁ ih₂ =>
+    generalize S.Γ = Γ at *;
+    generalize S.Δ = Δ at *;
     rintro M f ⟨hΓ, hX⟩;
-    have ⟨hΓ₁, hΓ₂⟩ : f ⊧ (x ∶ φ ➝ ψ) ∧ ∀ a ∈ Γ.fmls, f ⊧ a := by simpa using hΓ;
+    have ⟨hΓ₁, hΓ₂⟩ : f ⊧ (x ∶ φ ➝ ψ) ∧ ∀ lφ ∈ Γ.fmls, f ⊧ lφ := by simpa using hΓ;
     replace hX : ∀ x y, ⟨x, y⟩ ∈ Γ.rels → LabelTerm.evaluated f ⟨x, y⟩ := by simpa using hX;
     have : ¬(f x ⊧ φ) ∨ (f x ⊧ ψ) := by
       simpa [LabelledFormula.Satisfies.imp_def, Semantics.Imp.realize_imp, imp_iff_not_or] using hΓ₁;
@@ -21,7 +22,7 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
     . replace ih₁ :
         (∀ lφ ∈ Γ.fmls, f ⊧ lφ) →
         (∀ a b, (a, b) ∈ Γ.rels → LabelTerm.evaluated f (a, b)) →
-        ((f x) ⊧ φ ∨ ∃ a ∈ Δ.fmls, f ⊧ a) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b)
+        ((f x) ⊧ φ ∨ ∃ lφ ∈ Δ.fmls, f ⊧ lφ) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b)
         := by simpa [Sequent.Satisfies] using ih₁ M f;
       rcases ih₁ hΓ₂ hX with (_ | ⟨lψ, _, _⟩) | _;
       . simp_all;
@@ -34,15 +35,17 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
           (∃ lφ ∈ Δ.fmls, f ⊧ lφ) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b)
           := by simpa [Sequent.Satisfies] using ih₂ M f;
       rcases ih₂ h hΓ₂ hX with _ | _ <;> simp_all;
-  | @impR Γ Δ x φ ψ d ih =>
+  | @impR S x φ ψ d ih =>
+    generalize S.Γ = Γ at *;
+    generalize S.Δ = Δ at *;
     rintro M f ⟨hΓ, hX⟩;
-    suffices ((¬(f x) ⊧ φ ∨ (f x) ⊧ ψ) ∨ ∃ a ∈ Δ.fmls, f ⊧ a) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b) by
+    suffices ((¬(f x) ⊧ φ ∨ (f x) ⊧ ψ) ∨ ∃ lφ ∈ Δ.fmls, f ⊧ lφ) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b) by
       simpa [LabelledFormula.Satisfies.imp_def, Semantics.Imp.realize_imp, imp_iff_not_or];
     wlog _ : (f x) ⊧ φ;
     . tauto;
     replace ih :
       (f ⊧ x ∶ φ) →
-      (∀ a ∈ Γ.fmls, f ⊧ a) →
+      (∀ lφ ∈ Γ.fmls, f ⊧ lφ) →
       (∀ a b, (a, b) ∈ Γ.rels → LabelTerm.evaluated f (a, b)) →
       ((f ⊧ x ∶ ψ) ∨ ∃ a ∈ Δ.fmls, f ⊧ a) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b)
       := by simpa [Sequent.Satisfies] using ih M f;
@@ -50,7 +53,9 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
     . tauto;
     . simp_all;
     . simp_all;
-  | @boxL Γ Δ x y φ d ih =>
+  | @boxL S x y φ d ih =>
+    generalize S.Γ = Γ at *;
+    generalize S.Δ = Δ at *;
     rintro M f ⟨hΓ, hX⟩;
 
     have ⟨hxbφ, hΓ₂⟩ : (f ⊧ x ∶ □φ) ∧ ∀ a ∈ Γ.fmls, f ⊧ a := by simpa using hΓ;
@@ -60,16 +65,18 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
     replace ih :
       (f ⊧ x ∶ □φ) →
       (f ⊧ y ∶ φ) →
-      (∀ a ∈ Γ.fmls, f ⊧ a) →
+      (∀ lφ ∈ Γ.fmls, f ⊧ lφ) →
       LabelTerm.evaluated f (x, y) →
       (∀ a b, (a, b) ∈ Γ.rels → LabelTerm.evaluated f (a, b)) →
       (∃ lφ ∈ Δ.fmls, f ⊧ lφ) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b) := by simpa [Sequent.Satisfies] using ih M f;
 
     rcases ih hxbφ hyφ hΓ₂ hxy hX₂ with _ | _ <;> simp_all;
-  | @boxR Γ Δ x y φ hxy hyΓ hyΔ d ih =>
+  | @boxR S x y φ hxy hyΓ hyΔ d ih =>
+    generalize S.Γ = Γ at *;
+    generalize S.Δ = Δ at *;
     rintro M f ⟨hΓ, hX⟩;
 
-    suffices ((f ⊧ x ∶ □φ) ∨ ∃ a ∈ Δ.fmls, f ⊧ a) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b) by simpa;
+    suffices ((f ⊧ x ∶ □φ) ∨ ∃ lφ ∈ Δ.fmls, f ⊧ lφ) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated f (a, b) by simpa;
     apply or_iff_not_imp_right.mpr;
     intro hΔ₁; push_neg at hΔ₁;
     apply or_iff_not_imp_right.mpr;
@@ -82,7 +89,7 @@ theorem soundness {S : Sequent} : ⊢ᵍ S → ∀ (M : Kripke.Model), ∀ (f : 
       (∀ lφ ∈ Γ.fmls, g ⊧ lφ) →
       LabelTerm.evaluated g (x, y) →
       (∀ a b, (a, b) ∈ Γ.rels → LabelTerm.evaluated g (a, b)) →
-      ((g ⊧ y ∶ φ) ∨ ∃ a ∈ Δ.fmls, g ⊧ a) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated g (a, b)
+      ((g ⊧ y ∶ φ) ∨ ∃ lφ ∈ Δ.fmls, g ⊧ lφ) ∨ ∃ a b, (a, b) ∈ Δ.rels ∧ LabelTerm.evaluated g (a, b)
       := by simpa [Sequent.Satisfies] using ih M g;
     have : ∀ lφ ∈ Γ.fmls, g ⊧ lφ := by
       rintro ⟨a, ψ⟩ hz;
