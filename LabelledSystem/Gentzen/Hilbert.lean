@@ -1,71 +1,95 @@
 import LabelledSystem.Gentzen.Basic
 
-namespace LO.Modal.Labelled.Gentzen
+namespace LO.Modal
 
--- def Sequent.ofFormula (φ : Formula ℕ) : Sequent := ⟨∅, ∅⟩ ⟹ ⟨{0 ∶ φ}, ∅⟩
+namespace Labelled.Gentzen
+
+open SequentPart
 
 variable {x : Label} {φ ψ χ : Formula ℕ}
 
-def imply₁ : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ φ ➝ ψ ➝ φ}, ∅⟩ := by
+def imply₁ : ⊢ᵍ ↑(φ ➝ ψ ➝ φ) := by
   apply impR (Δ := ⟨_, _⟩);
   apply impR (Δ := ⟨_, _⟩);
-  have e : (x ∶ ψ) ::ₘ {x ∶ φ} = (x ∶ φ) ::ₘ {x ∶ ψ} := by sorry;
-  exact initFml' x φ (by simp) (by simp);
+  have e : (0 ∶ ψ) ::ₘ {0 ∶ φ} = (0 ∶ φ) ::ₘ {0 ∶ ψ} := by apply Multiset.cons_swap;
+  exact initFml' default φ (by simp) (by simp);
 
-def imply₂ : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ (φ ➝ ψ ➝ χ) ➝ (φ ➝ ψ) ➝ φ ➝ χ}, ∅⟩ := by
+def imply₂ : ⊢ᵍ ↑((φ ➝ ψ ➝ χ) ➝ (φ ➝ ψ) ➝ φ ➝ χ) := by
+  letI x : Label := default;
   apply impR (Δ := ⟨_, _⟩);
   apply impR (Δ := ⟨_, _⟩);
   apply impR (Δ := ⟨_, _⟩);
   rw [Multiset.cons_swap];
-  apply impL (Γ := ⟨{x ∶ φ, x ∶ φ ➝ ψ ➝ χ}, _⟩);
-  . exact initFml' x φ (by simp) (by simp);
-  . suffices ⊢ᵍ ⟨(x ∶ φ ➝ ψ ➝ χ) ::ₘ {x ∶ ψ, x ∶ φ}, ∅⟩ ⟹ ⟨{x ∶ χ}, ∅⟩ by
-      have e : (x ∶ ψ) ::ₘ (x ∶ φ) ::ₘ {x ∶ φ ➝ ψ ➝ χ} = (x ∶ φ ➝ ψ ➝ χ) ::ₘ {x ∶ ψ, x ∶ φ} := by sorry;
+  apply impL (Γ := ⟨{0 ∶ φ, 0 ∶ φ ➝ ψ ➝ χ}, _⟩);
+  . exact initFml' 0 φ (by simp) (by simp [x]);
+  . suffices ⊢ᵍ ⟨(0 ∶ φ ➝ ψ ➝ χ) ::ₘ {0 ∶ ψ, 0 ∶ φ}, ∅⟩ ⟹ ⟨{0 ∶ χ}, ∅⟩ by
+      have e : (0 ∶ ψ) ::ₘ (0 ∶ φ) ::ₘ {0 ∶ φ ➝ ψ ➝ χ} = (0 ∶ φ ➝ ψ ➝ χ) ::ₘ {0 ∶ ψ, 0 ∶ φ} := by
+        ext;
+        simp_rw [Multiset.insert_eq_cons, Multiset.count_cons, Multiset.count_singleton];
+        omega;
       simpa [e];
     apply impL (Γ := ⟨_, _⟩);
-    . exact initFml' x φ (by simp) (by simp);
+    . exact initFml' 0 φ (by simp) (by simp);
     . apply impL (Γ := ⟨_, _⟩);
-      . exact initFml' x ψ (by simp) (by simp);
-      . exact initFml' x χ (by simp) (by simp);
+      . exact initFml' 0 ψ (by simp) (by simp);
+      . exact initFml' 0 χ (by simp) (by simp);
 
-def elimContra : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ (∼ψ ➝ ∼φ) ➝ (φ ➝ ψ)}, ∅⟩ := by
+def elimContra : ⊢ᵍ ↑((∼ψ ➝ ∼φ) ➝ (φ ➝ ψ)) := by
   apply impR (Δ := ⟨_, _⟩);
   apply impR (Δ := ⟨_, _⟩);
   rw [Multiset.cons_swap];
-  apply impL (Γ := ⟨{x ∶ φ}, _⟩);
-  . -- TODO: `⊢ᵍ Γ ⟹ ⟨(x ∶ ∼ψ) ::ₘ {x ∶ ψ}, Δ.rels⟩`
+  apply impL (Γ := ⟨{0 ∶ φ}, _⟩);
+  . -- TODO: `⊢ᵍ Γ ⟹ ⟨(0 ∶ ∼ψ) ::ₘ {0 ∶ ψ}, Δ.rels⟩`
     apply impR (Δ := ⟨_, _⟩);
-    exact initFml' x ψ (by simp) (by simp);
-  . -- TODO: `⊢ᵍ ⟨(x ∶ ∼φ) ::ₘ {x ∶ φ} :: Γ.fmls, ∅⟩ ⟹ Δ`
-    apply impL (Γ := ⟨{x ∶ φ}, _⟩);
-    . exact initFml' x φ (by simp) (by simp);
+    exact initFml' default ψ (by simp) (by simp);
+  . -- TODO: `⊢ᵍ ⟨(0 ∶ ∼φ) ::ₘ {0 ∶ φ} :: Γ.fmls, ∅⟩ ⟹ Δ`
+    apply impL (Γ := ⟨{0 ∶ φ}, _⟩);
+    . exact initFml' default φ (by simp) (by simp);
     . exact initBot;
 
-def axiomK : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ □(φ ➝ ψ) ➝ □φ ➝ □ψ}, ∅⟩ := by
-  letI y : Label := x + 1;
+def axiomK : ⊢ᵍ ↑(□(φ ➝ ψ) ➝ □φ ➝ □ψ) := by
   apply impR (Δ := ⟨_, _⟩);
   apply impR;
-  apply boxR (y := y) (by simp [y]) (by simp) (by simp);
-  suffices ⊢ᵍ (⟨(x ∶ □φ) ::ₘ {x ∶ □(φ ➝ ψ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by simpa;
+  apply boxR (y := 1) (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);
+  suffices ⊢ᵍ (⟨(0 ∶ □φ) ::ₘ {0 ∶ □(φ ➝ ψ)}, {(0, 1)}⟩ ⟹ ⟨{1 ∶ ψ}, ∅⟩) by simpa;
   apply boxL (Γ := ⟨_, _⟩);
-  suffices ⊢ᵍ (⟨(x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ) ::ₘ {(x ∶ □φ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by
-    have e : (x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ) ::ₘ {x ∶ □φ} = (x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ {x ∶ □(φ ➝ ψ)} := by sorry;
+  suffices ⊢ᵍ (⟨(0 ∶ □(φ ➝ ψ)) ::ₘ (1 ∶ φ) ::ₘ {(0 ∶ □φ)}, {(0, 1)}⟩ ⟹ ⟨{1 ∶ ψ}, ∅⟩) by
+    have e : (0 ∶ □(φ ➝ ψ)) ::ₘ (1 ∶ φ) ::ₘ {0 ∶ □φ} = (0 ∶ □φ) ::ₘ (1 ∶ φ) ::ₘ {0 ∶ □(φ ➝ ψ)} := by
+      ext;
+      simp_rw [Multiset.count_cons, Multiset.count_singleton];
+      omega;
     simpa [e];
-  apply boxL (Γ := ⟨{y ∶ φ, x ∶ □φ}, _⟩);
-  suffices ⊢ᵍ (⟨(y ∶ φ ➝ ψ) ::ₘ {y ∶ φ, x ∶ □φ, x ∶ □(φ ➝ ψ)}, {(x, y)}⟩ ⟹ ⟨{y ∶ ψ}, ∅⟩) by
-    have e : (x ∶ □(φ ➝ ψ)) ::ₘ (y ∶ φ ➝ ψ) ::ₘ (y ∶ φ) ::ₘ {x ∶ □φ} = (y ∶ φ ➝ ψ) ::ₘ {y ∶ φ, x ∶ □φ, x ∶ □(φ ➝ ψ)} := by sorry;
+  apply boxL (Γ := ⟨{1 ∶ φ, 0 ∶ □φ}, _⟩);
+  suffices ⊢ᵍ (⟨(1 ∶ φ ➝ ψ) ::ₘ {1 ∶ φ, 0 ∶ □φ, 0 ∶ □(φ ➝ ψ)}, {(0, 1)}⟩ ⟹ ⟨{1 ∶ ψ}, ∅⟩) by
+    have e : (0 ∶ □(φ ➝ ψ)) ::ₘ (1 ∶ φ ➝ ψ) ::ₘ (1 ∶ φ) ::ₘ {0 ∶ □φ} = (1 ∶ φ ➝ ψ) ::ₘ {1 ∶ φ, 0 ∶ □φ, 0 ∶ □(φ ➝ ψ)} := by
+      ext;
+      simp_rw [Multiset.insert_eq_cons, Multiset.count_cons, Multiset.count_singleton];
+      omega;
     simpa [e];
   apply impL (Γ := ⟨_, _⟩);
-  . exact initFml' y φ (by simp) (by simp);
-  . exact initFml' y ψ (by simp) (by simp);
+  . exact initFml' 1 φ (by simp) (by simp);
+  . exact initFml' 1 ψ (by simp) (by simp);
 
-def mdp (d₁ : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ φ ➝ ψ}, ∅⟩) (d₂ : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ φ}, ∅⟩) : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ ψ}, ∅⟩ := by
-  simpa using cutFml (Δ₁ := ⟨∅, ∅⟩) (Δ₂ := ⟨{x ∶ ψ}, ∅⟩) d₂ $ implyRInv (Δ := ⟨∅, ∅⟩) d₁;
+def mdp (d₁ : ⊢ᵍ ↑(φ ➝ ψ)) (d₂ : ⊢ᵍ ↑φ) : ⊢ᵍ ↑ψ := by
+  simpa using cutFml (Δ₁ := ⟨∅, ∅⟩) (Δ₂ := ⟨{_ ∶ ψ}, ∅⟩) d₂ $ implyRInv (Δ := ⟨∅, ∅⟩) d₁;
 
-def necessitation (d : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ φ}, ∅⟩) : ⊢ᵍ ⟨∅, ∅⟩ ⟹ ⟨{x ∶ □φ}, ∅⟩ := by
-  letI y : Label := x + 1;
-  apply boxR (Δ := ⟨∅, ∅⟩) (y := y) (by simp [y]) (by simp) (by simp);
+def necessitation (d : ⊢ᵍ ↑φ) : ⊢ᵍ ↑(□φ) := by
+  apply boxR (Δ := ⟨∅, ∅⟩) (y := 1) (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);
   apply wkRelL;
-  simpa [SequentPart.replaceLabel, LabelledFormula.labelReplace, LabelReplace.specific] using replaceLabel d (x ⧸ y);
+  simpa [SequentPart.replaceLabel, LabelledFormula.labelReplace, LabelReplace.specific] using replaceLabel d (0 ⧸ 1);
 
-end LO.Modal.Labelled.Gentzen
+
+theorem ofHilbertK! (h : Hilbert.K ℕ ⊢! φ) : ⊢ᵍ! ↑φ := by
+  induction h using Hilbert.Deduction.inducition_with_necOnly! with
+  | hMdp ihφψ ihφ => exact ⟨mdp ihφψ.some ihφ.some⟩
+  | hNec ihφ => exact ⟨necessitation ihφ.some⟩
+  | hImply₁ => exact ⟨imply₁⟩
+  | hImply₂ => exact ⟨imply₂⟩
+  | hElimContra => exact ⟨elimContra⟩
+  | hMaxm h =>
+    rcases h with ⟨_, _, rfl⟩;
+    . exact ⟨axiomK⟩;
+
+end Labelled.Gentzen
+
+end LO.Modal

@@ -15,7 +15,9 @@ structure SequentPart where
 
 namespace SequentPart
 
-@[simp] def isFreshLabel (x : Label) (Γ : SequentPart) : Prop := (x ∉ Γ.fmls.map LabelledFormula.label) ∧ (∀ y, (x, y) ∉ Γ.rels) ∧ (∀ y, (y, x) ∉ Γ.rels)
+def isFreshLabel (x : Label) (Γ : SequentPart) : Prop := (x ∉ Γ.fmls.map LabelledFormula.label) ∧ (∀ y, (x, y) ∉ Γ.rels) ∧ (∀ y, (y, x) ∉ Γ.rels)
+
+section
 
 /-
 instance : Decidable (isFreshLabel Γ x) := by
@@ -30,6 +32,46 @@ lemma not_include_relTerm_of_isFreshLabel₁ (h : Γ.isFreshLabel x) : ∀ y, (x
 
 lemma not_include_relTerm_of_isFreshLabel₂ (h : Γ.isFreshLabel x) : ∀ y, (y, x) ∉ Γ.rels := by have := h.2.2; aesop;
 
+end
+
+
+section
+
+def getFreshLabel₁ (Γ : SequentPart) : Label :=
+  letI l₁ := Γ.fmls.map LabelledFormula.label;
+  letI l₂ := Γ.rels.map (λ (x, y) => max x y);
+  0
+
+def getFreshLabel₂ (Γ Δ : SequentPart) : Label := max Γ.getFreshLabel₁ Δ.getFreshLabel₁
+
+variable {Γ Δ : SequentPart}
+
+lemma getFreshLabel₁_isFreshLabel : Γ.isFreshLabel (Γ.getFreshLabel₁) := by sorry;
+
+lemma getFreshLabel₁_ne (h : (x ∶ φ) ∈ Γ.fmls) : Γ.getFreshLabel₁ ≠ x := by
+  rintro rfl;
+  have := not_include_labelledFml_of_isFreshLabel getFreshLabel₁_isFreshLabel (Γ := Γ) φ;
+  contradiction;
+
+@[simp]
+lemma getFreshLabel₂_isFreshLabel₁ : Γ.isFreshLabel (getFreshLabel₂ Γ Δ) := by
+  simp [getFreshLabel₂];
+  sorry;
+
+@[simp]
+lemma getFreshLabel₂_isFreshLabel₂ : Δ.isFreshLabel (getFreshLabel₂ Γ Δ) := getFreshLabel₂_isFreshLabel₁
+
+lemma getFreshLabel₂_ne₁ (h : (x ∶ φ) ∈ Γ.fmls) : getFreshLabel₂ Γ Δ ≠ x := by
+  rintro rfl;
+  have : (getFreshLabel₂ Γ Δ ∶ φ) ∉ Γ.fmls := not_include_labelledFml_of_isFreshLabel getFreshLabel₂_isFreshLabel₁ φ;
+  contradiction;
+
+lemma getFreshLabel₂_ne₂ (h : (x ∶ φ) ∈ Δ.fmls) : getFreshLabel₂ Γ Δ ≠ x := by
+  rintro rfl;
+  have : (getFreshLabel₂ Γ Δ ∶ φ) ∉ Δ.fmls := not_include_labelledFml_of_isFreshLabel getFreshLabel₂_isFreshLabel₂ φ;
+  contradiction;
+
+end
 
 abbrev replaceLabel (σ : Label → Label) (Γ : SequentPart) : SequentPart :=
   ⟨Γ.fmls.map (LabelledFormula.labelReplace σ), Γ.rels.map (LabelTerm.replace σ)⟩
@@ -48,6 +90,9 @@ structure Sequent where
 infix:50 " ⟹ " => Sequent.mk
 
 namespace Sequent
+
+abbrev ofFormula (φ : Formula ℕ) : Sequent := ⟨∅, ∅⟩ ⟹ ⟨{0 ∶ φ}, ∅⟩
+instance : Coe (Formula ℕ) Sequent := ⟨Sequent.ofFormula⟩
 
 abbrev Satisfies (M : Kripke.Model) (f : Assignment M) : Sequent → Prop := λ ⟨Γ, Δ⟩ =>
   (∀ lφ ∈ Γ.fmls, f ⊧ lφ) ∧ (∀ r ∈ Γ.rels, r.evaluated f) →
@@ -90,8 +135,8 @@ prefix:40 "⊢ᵍ! " => Derivable
 section Height
 
 def Derivation.height {S : Sequent} : ⊢ᵍ S → ℕ
-  | initAtom => 1
-  | initBot => 1
+  | initAtom => 0
+  | initBot => 0
   | impL d₁ d₂ => max d₁.height d₂.height + 1
   | impR d => d.height + 1
   | boxL d => d.height + 1
@@ -102,7 +147,26 @@ structure DerivationWithHeight (S : Sequent) (h : ℕ) where
   height : drv.height = h
 notation:40 "⊢ᵍ[" h "] " S => DerivationWithHeight S h
 
-def DerivationWithHeight.ofDerivation (d : ⊢ᵍ S) : ⊢ᵍ[d.height] S := ⟨d, rfl⟩
+namespace DerivationWithHeight
+
+def ofDerivation (d : ⊢ᵍ S) : ⊢ᵍ[d.height] S := ⟨d, rfl⟩
+
+variable {Γ Δ : SequentPart}
+
+lemma ofZero (d : ⊢ᵍ[0] Γ ⟹ Δ) : (∃ x a, (x ∶ .atom a) ∈ Γ.fmls) ∨ (∃ x, (x ∶ ⊥) ∈ Γ.fmls) := by
+  cases d.drv with
+  | @initAtom _ _ y a =>
+    left;
+    use y, a;
+    simp;
+  | @initBot _ _ y =>
+    right;
+    use y;
+    simp;
+  | _ => sorry;
+
+end DerivationWithHeight
+
 
 abbrev DerivableWithHeight (S : Sequent) (h : ℕ) : Prop := Nonempty (⊢ᵍ[h] S)
 notation:40 "⊢ᵍ[ " h " ]! " S => DerivableWithHeight S h
@@ -112,6 +176,8 @@ end Height
 
 
 variable {Γ Γ₁ Γ₂ Δ Δ₁ Δ₂ : SequentPart}
+
+open SequentPart
 
 section
 
@@ -126,8 +192,10 @@ def initFml : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ φ) 
     apply impR;
     simpa [Multiset.cons_swap] using impL ihφ ihψ;
   | hbox φ ih =>
-    letI y := x + 1;
-    apply boxR (y := y) (by simp [y]) (by sorry) (by sorry);
+    apply boxR (y := getFreshLabel₂ ⟨(x ∶ □φ) ::ₘ Γ.fmls, Γ.rels⟩ Δ)
+      (getFreshLabel₂_ne₁ (x := x) (φ := □φ) (by simp)).symm
+      getFreshLabel₂_isFreshLabel₁
+      getFreshLabel₂_isFreshLabel₂;
     apply boxL;
     simpa [Multiset.cons_swap] using ih (Γ := ⟨(x ∶ □φ) ::ₘ Γ.fmls, _ ::ₘ Γ.rels⟩);
 
@@ -149,7 +217,20 @@ end ReplaceLabel
 
 section Weakening
 
-def wkFmlLₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := by sorry
+def wkFmlLₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := by
+  sorry;
+  /-
+
+  induction h with
+
+  | zero =>
+    cases d.drv with
+    | @initAtom Γ Δ x a =>
+      sorry;
+    | boxR => sorry
+    | _ => sorry
+  | succ n => sorry;
+  -/
 
 def wkFmlL (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := wkFmlLₕ (d := .ofDerivation d) |>.drv
 
