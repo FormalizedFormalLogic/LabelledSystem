@@ -1,4 +1,6 @@
-import LabelledSystem.Gentzen.Basic
+import LabelledSystem.Gentzen.Cut
+import LabelledSystem.Gentzen.Weakening
+import LabelledSystem.Gentzen.Inverted
 
 namespace LO.Modal
 

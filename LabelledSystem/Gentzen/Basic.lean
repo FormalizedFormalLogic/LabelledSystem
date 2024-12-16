@@ -1,5 +1,6 @@
 import Foundation.Modal.Kripke.Basic
 import LabelledSystem.Basic
+import Mathlib.Tactic.Abel
 
 namespace LO.Modal
 
@@ -32,50 +33,65 @@ lemma not_include_relTerm_of_isFreshLabel₁ (h : Γ.isFreshLabel x) : ∀ y, (x
 
 lemma not_include_relTerm_of_isFreshLabel₂ (h : Γ.isFreshLabel x) : ∀ y, (y, x) ∉ Γ.rels := by have := h.2.2; aesop;
 
+lemma of_isFreshLabel
+  (hFmls : ∀ φ, (x ∶ φ) ∉ Γ.fmls)
+  (hRel₁ : ∀ y, (x, y) ∉ Γ.rels)
+  (hRel₂ : ∀ y, (y, x) ∉ Γ.rels)
+  : Γ.isFreshLabel x := by
+  refine ⟨?_, hRel₁, hRel₂⟩;
+  . suffices ∀ y ∈ Γ.fmls, ¬y.label = x by simpa;
+    rintro ⟨y, φ⟩ hφ rfl;
+    have := hFmls φ;
+    contradiction;
+
 end
 
 
 section
 
-def getFreshLabel₁ (Γ : SequentPart) : Label :=
+def getFreshLabel (Γ : SequentPart) : Label :=
   letI l₁ := Γ.fmls.map LabelledFormula.label;
   letI l₂ := Γ.rels.map (λ (x, y) => max x y);
   0
 
-def getFreshLabel₂ (Γ Δ : SequentPart) : Label := max Γ.getFreshLabel₁ Δ.getFreshLabel₁
-
 variable {Γ Δ : SequentPart}
 
-lemma getFreshLabel₁_isFreshLabel : Γ.isFreshLabel (Γ.getFreshLabel₁) := by sorry;
-
-lemma getFreshLabel₁_ne (h : (x ∶ φ) ∈ Γ.fmls) : Γ.getFreshLabel₁ ≠ x := by
-  rintro rfl;
-  have := not_include_labelledFml_of_isFreshLabel getFreshLabel₁_isFreshLabel (Γ := Γ) φ;
-  contradiction;
-
 @[simp]
-lemma getFreshLabel₂_isFreshLabel₁ : Γ.isFreshLabel (getFreshLabel₂ Γ Δ) := by
-  simp [getFreshLabel₂];
-  sorry;
+lemma getFreshLabel_isFreshLabel : Γ.isFreshLabel (Γ.getFreshLabel) := by sorry;
 
-@[simp]
-lemma getFreshLabel₂_isFreshLabel₂ : Δ.isFreshLabel (getFreshLabel₂ Γ Δ) := getFreshLabel₂_isFreshLabel₁
-
-lemma getFreshLabel₂_ne₁ (h : (x ∶ φ) ∈ Γ.fmls) : getFreshLabel₂ Γ Δ ≠ x := by
+lemma getFreshLabel_ne (h : (x ∶ φ) ∈ Γ.fmls) : Γ.getFreshLabel ≠ x := by
   rintro rfl;
-  have : (getFreshLabel₂ Γ Δ ∶ φ) ∉ Γ.fmls := not_include_labelledFml_of_isFreshLabel getFreshLabel₂_isFreshLabel₁ φ;
+  have := not_include_labelledFml_of_isFreshLabel getFreshLabel_isFreshLabel (Γ := Γ) φ;
   contradiction;
 
-lemma getFreshLabel₂_ne₂ (h : (x ∶ φ) ∈ Δ.fmls) : getFreshLabel₂ Γ Δ ≠ x := by
-  rintro rfl;
-  have : (getFreshLabel₂ Γ Δ ∶ φ) ∉ Δ.fmls := not_include_labelledFml_of_isFreshLabel getFreshLabel₂_isFreshLabel₂ φ;
-  contradiction;
+lemma getFreshLabel_mono (hFmls : Γ.fmls ⊆ Δ.fmls) (hRels : Γ.rels ⊆ Δ.rels) : Γ.isFreshLabel Δ.getFreshLabel := by
+  apply of_isFreshLabel;
+  . suffices ∀ (φ : Formula ℕ), (Δ.getFreshLabel ∶ φ) ∉ Δ.fmls by
+      intro φ;
+      exact Multiset.not_mem_mono hFmls $ this φ;
+    apply not_include_labelledFml_of_isFreshLabel;
+    simp;
+  . suffices ∀ (y : Label), (Δ.getFreshLabel, y) ∉ Δ.rels by
+      intro φ;
+      exact Multiset.not_mem_mono hRels $ this φ;
+    apply not_include_relTerm_of_isFreshLabel₁;
+    simp;
+  . suffices ∀ (y : Label), (y, Δ.getFreshLabel) ∉ Δ.rels by
+      intro φ;
+      exact Multiset.not_mem_mono hRels $ this φ;
+    apply not_include_relTerm_of_isFreshLabel₂;
+    simp;
 
 end
 
-abbrev replaceLabel (σ : Label → Label) (Γ : SequentPart) : SequentPart :=
-  ⟨Γ.fmls.map (LabelledFormula.labelReplace σ), Γ.rels.map (LabelTerm.replace σ)⟩
+
+def replaceLabel (σ : LabelReplace) (Γ : SequentPart) : SequentPart :=
+  ⟨Γ.fmls.map (.labelReplace σ), Γ.rels.map (.labelReplace σ)⟩
 notation Γ "⟦" σ "⟧" => SequentPart.replaceLabel σ Γ
+
+@[simp]
+lemma def_replaceLabel {Γ : SequentPart} {σ} : Γ⟦σ⟧ = ⟨Γ.fmls.map (.labelReplace σ), Γ.rels.map (.labelReplace σ)⟩ := rfl
+
 
 abbrev add (Γ Δ : SequentPart) : SequentPart := ⟨Γ.fmls + Δ.fmls, Γ.rels + Δ.rels⟩
 instance : Add SequentPart := ⟨add⟩
@@ -98,6 +114,9 @@ instance : Coe (Formula ℕ) Sequent := ⟨Sequent.ofFormula⟩
 abbrev replaceLabel (σ : Label → Label) (S : Sequent) : Sequent := ⟨S.Γ⟦σ⟧, S.Δ⟦σ⟧⟩
 notation S "⟦" σ "⟧" => Sequent.replaceLabel σ S
 
+@[simp]
+lemma def_replaceLabel {σ : LabelReplace} {S : Sequent} : S⟦σ⟧ = ⟨S.Γ⟦σ⟧, S.Δ⟦σ⟧⟩ := rfl
+
 
 abbrev Satisfies (M : Kripke.Model) (f : Assignment M) : Sequent → Prop := λ ⟨Γ, Δ⟩ =>
   (∀ lφ ∈ Γ.fmls, f ⊧ lφ) ∧ (∀ r ∈ Γ.rels, r.evaluated f) →
@@ -108,6 +127,33 @@ namespace Satisfies
 protected instance semantics {M : Kripke.Model} : Semantics Sequent (Assignment M) := ⟨fun x ↦ Satisfies M x⟩
 
 end Satisfies
+
+
+def getFreshLabel (S : Sequent) : Label := max S.Γ.getFreshLabel S.Δ.getFreshLabel
+
+section
+
+variable {S : Sequent}
+
+@[simp]
+lemma getFreshLabel_isFreshLabel₁ : S.Γ.isFreshLabel (S.getFreshLabel) := by
+  simp [getFreshLabel];
+  sorry;
+
+@[simp]
+lemma getFreshLabel_isFreshLabel₂ : S.Δ.isFreshLabel (S.getFreshLabel) := getFreshLabel_isFreshLabel₁ (S := ⟨S.Δ, S.Γ⟩)
+
+lemma getFreshLabel_ne₁ (h : (x ∶ φ) ∈ S.Γ.fmls) : S.getFreshLabel ≠ x := by
+  rintro rfl;
+  have : (S.getFreshLabel ∶ φ) ∉ S.Γ.fmls := SequentPart.not_include_labelledFml_of_isFreshLabel getFreshLabel_isFreshLabel₁ φ;
+  contradiction;
+
+lemma getFreshLabel_ne₂ (h : (x ∶ φ) ∈ S.Δ.fmls) : S.getFreshLabel ≠ x := by
+  rintro rfl;
+  have : (S.getFreshLabel ∶ φ) ∉ S.Δ.fmls := SequentPart.not_include_labelledFml_of_isFreshLabel getFreshLabel_isFreshLabel₂ φ;
+  contradiction;
+
+end
 
 end Sequent
 
@@ -153,18 +199,28 @@ def height {S : Sequent} : ⊢ᵍ S → ℕ
 
 @[simp] lemma initBot_height : (Derivation.initBot (S := S) x).height = 0 := rfl
 
+@[simp] lemma impL_height : (impL x φ ψ d₁ d₂).height = max d₁.height d₂.height + 1 := rfl
+
+@[simp] lemma impR_height : (impR x φ ψ d).height = d.height + 1 := rfl
+
+@[simp] lemma boxL_height : (boxL x y φ d).height = d.height + 1 := rfl
+
+@[simp] lemma boxR_height : (boxR x y φ h₁ h₂ h₃ d).height = d.height + 1 := rfl
+
 end Derivation
 
 structure DerivationWithHeight (S : Sequent) (k : ℕ) where
   drv : ⊢ᵍ S
   height_le : drv.height ≤ k
-notation:40 "⊢ᵍ[" h "] " S => DerivationWithHeight S h
+notation:80 "⊢ᵍ[" h "] " S => DerivationWithHeight S h
 
 namespace DerivationWithHeight
 
 def ofDerivation (d : ⊢ᵍ S) : ⊢ᵍ[d.height] S := ⟨d, by omega⟩
 
 def ofTaller (h : k ≤ l) : (⊢ᵍ[k] S) → (⊢ᵍ[l] S) := λ ⟨d, a⟩ => ⟨d, by omega⟩
+
+def ofTaller₀ (d : ⊢ᵍ[0] S) : (⊢ᵍ[k] S) := ofTaller (by omega) d
 
 variable {Γ Δ : SequentPart}
 
@@ -198,7 +254,7 @@ end DerivationWithHeight
 
 
 abbrev DerivableWithHeight (S : Sequent) (h : ℕ) : Prop := Nonempty (⊢ᵍ[h] S)
-notation:40 "⊢ᵍ[" h "]! " S => DerivableWithHeight S h
+notation:80 "⊢ᵍ[" h "]! " S => DerivableWithHeight S h
 
 end Height
 
@@ -210,40 +266,76 @@ open SequentPart
 
 section
 
-def initAtomₕ' (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls) : ⊢ᵍ[0] S := by
-  suffices ⊢ᵍ[0] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls, S.Δ.rels⟩) by simpa;
+def initAtomₕ' {k : ℕ} (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls) : ⊢ᵍ[k] S := by
+  suffices ⊢ᵍ[k] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls, S.Δ.rels⟩) by simpa;
   rw [←(Multiset.cons_erase h₁), ←(Multiset.cons_erase h₂)];
   exact ⟨initAtom (S := ⟨S.Γ.fmls.erase (x ∶ .atom a), S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls.erase (x ∶ .atom a), S.Δ.rels⟩) x a, by simp⟩
 
-def initAtom' (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls) : ⊢ᵍ S := initAtomₕ' x a h₁ h₂ |>.drv
+def initAtom' (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls) : ⊢ᵍ S := initAtomₕ' (k := 0) x a h₁ h₂ |>.drv
 
 
-def initBotₕ' (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls) : ⊢ᵍ[0] S := by
-  suffices ⊢ᵍ[0] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ) by simpa;
+def initBotₕ' {k : ℕ} (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls) : ⊢ᵍ[k] S := by
+  suffices ⊢ᵍ[k] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ) by simpa;
   rw [←(Multiset.cons_erase h)];
   exact ⟨initBot (S := ⟨S.Γ.fmls.erase (x ∶ ⊥), S.Γ.rels⟩ ⟹ S.Δ) x, by simp⟩
 
-def initBot' (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls) : ⊢ᵍ S := initBotₕ' x h |>.drv
+def initBot' (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls) : ⊢ᵍ S := initBotₕ' (k := 0) x h |>.drv
 
 
-def impL₂ : ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) → ⊢ᵍ (⟨(x ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ) → ⊢ᵍ (⟨(x ∶ φ ➝ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)
+def impL₂ :
+  ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) →
+  ⊢ᵍ (⟨(x ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ) →
+  ⊢ᵍ (⟨(x ∶ φ ➝ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)
   := impL (S := Γ ⟹ Δ) x φ ψ
 
+def impLₕ :
+  (⊢ᵍ[k₁] (Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩)) →
+  (⊢ᵍ[k₂] (⟨(x ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)) →
+  (⊢ᵍ[max k₁ k₂ + 1] (⟨(x ∶ φ ➝ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)) := by
+  rintro ⟨d₁, hk₁⟩ ⟨d₂, hk₂⟩;
+  exact ⟨impL₂ d₁ d₂, by dsimp [impL₂]; omega⟩;
 
-def impR₂ : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) → ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)
+
+def impR₂ :
+  ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) →
+  ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)
   := impR (S := Γ ⟹ Δ) x φ ψ
 
+def impRₕ :
+  (⊢ᵍ[h] (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) →
+  (⊢ᵍ[h + 1] (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) := by
+  rintro ⟨d, hk⟩;
+  exact ⟨impR₂ d, by simpa [impR₂]⟩
 
-def boxL₂ : ⊢ᵍ (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ) → ⊢ᵍ (⟨(x ∶ □φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)
+
+def boxL₂ :
+  ⊢ᵍ (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ) →
+  ⊢ᵍ (⟨(x ∶ □φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)
   := boxL (S := Γ ⟹ Δ) x y φ
 
+def boxLₕ :
+  (⊢ᵍ[k] (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)) →
+  (⊢ᵍ[k + 1] (⟨(x ∶ □φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)) := by
+  rintro ⟨d, hk⟩;
+  exact ⟨boxL₂ d, by simpa [boxL₂]⟩
 
-def boxR₂ : x ≠ y → Γ.isFreshLabel y → Δ.isFreshLabel y → ⊢ᵍ (⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ ⟨(y ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) → ⊢ᵍ (Γ ⟹ ⟨(x ∶ □φ) ::ₘ Δ.fmls, Δ.rels⟩)
+
+def boxR₂ : x ≠ y → Γ.isFreshLabel y → Δ.isFreshLabel y →
+  ⊢ᵍ (⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ ⟨(y ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) →
+  ⊢ᵍ (Γ ⟹ ⟨(x ∶ □φ) ::ₘ Δ.fmls, Δ.rels⟩)
   := boxR (S := Γ ⟹ Δ) x y φ
+
+def boxRₕ (hxy : x ≠ y) (hΓ : Γ.isFreshLabel y) (hΔ : Δ.isFreshLabel y) :
+  (⊢ᵍ[h] (⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ ⟨(y ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩)) →
+  (⊢ᵍ[h + 1] (Γ ⟹ ⟨(x ∶ □φ) ::ₘ Δ.fmls, Δ.rels⟩)) := by
+  rintro ⟨d, hk⟩;
+  exact ⟨boxR₂ hxy hΓ hΔ d, by simpa [boxR₂]⟩
 
 end
 
 section
+
+open Sequent
 
 def initFml₂ : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) := by
   induction φ using Formula.rec' generalizing Γ Δ x with
@@ -256,10 +348,10 @@ def initFml₂ : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ �
     . simpa using ihφ (Δ := ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩);
     . simpa using ihψ (Γ := ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩);
   | hbox φ ih =>
-    apply boxR₂ (y := getFreshLabel₂ ⟨(x ∶ □φ) ::ₘ Γ.fmls, Γ.rels⟩ Δ)
-      (getFreshLabel₂_ne₁ (x := x) (φ := □φ) (by simp)).symm
-      getFreshLabel₂_isFreshLabel₁
-      getFreshLabel₂_isFreshLabel₂;
+    apply boxR₂ (y := (⟨(x ∶ □φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ).getFreshLabel)
+      (getFreshLabel_ne₁ (x := x) (φ := □φ) (by simp)).symm
+      getFreshLabel_isFreshLabel₁
+      getFreshLabel_isFreshLabel₂;
     apply boxL₂;
     simpa [Multiset.cons_swap] using ih (Γ := ⟨(x ∶ □φ) ::ₘ Γ.fmls, _ ::ₘ Γ.rels⟩);
 
@@ -275,92 +367,31 @@ def initFml' (x φ) (h₁ : (x ∶ φ) ∈ S.Γ.fmls) (h₂ : (x ∶ φ) ∈ S.�
 end
 
 
+section
 
-section ReplaceLabel
+variable {x y z : Label} {φ ψ ξ : Formula ℕ}
 
-open DerivationWithHeight
+def exchangeFmlLₕ :
+  (⊢ᵍ[k] (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)) →
+  (⊢ᵍ[k] (⟨(y ∶ ψ) ::ₘ (x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ))
+  := by
+  suffices (x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ Γ.fmls = (y ∶ ψ) ::ₘ (x ∶ φ) ::ₘ Γ.fmls by
+    rw [this];
+    tauto;
+  simp_rw [←Multiset.singleton_add]
+  abel;
 
-noncomputable def replaceLabelₕAux (d : ⊢ᵍ[k] S) (σ : Label → Label) : ⊢ᵍ[k] S⟦σ⟧ := by
-  obtain ⟨d, kh⟩ := d;
-  induction d with
-  | initAtom y a =>
-    exact ofTaller (by omega) $ initAtomₕ' (σ y) a
-      (by simp [Sequent.replaceLabel, SequentPart.replaceLabel, LabelledFormula.labelReplace])
-      (by simp [Sequent.replaceLabel, SequentPart.replaceLabel, LabelledFormula.labelReplace]);
-  | initBot y =>
-    exact ofTaller (by omega) $ initBotₕ' (σ y)
-      (by simp [Sequent.replaceLabel, SequentPart.replaceLabel, LabelledFormula.labelReplace]);
-  | impL d₁ d₂ ih₁ ih₂ => sorry;
-  | impR x φ ψ d ih =>
-    sorry;
-  | boxL d ih => sorry;
-  | boxR _ _ _ d ih => sorry;
+def exchangeFml₃Lₕ :
+  (⊢ᵍ[k] (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)) →
+  (⊢ᵍ[k] (⟨(y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ (x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ))
+  := by
+  suffices (x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ Γ.fmls = (y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ (x ∶ φ) ::ₘ Γ.fmls by
+    rw [this];
+    tauto;
+  simp_rw [←Multiset.singleton_add];
+  abel;
 
-def replaceLabelₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) (σ : Label → Label) : ⊢ᵍ[h] Γ⟦σ⟧ ⟹ Δ⟦σ⟧ := by sorry;
-
-def replaceLabel (d : ⊢ᵍ Γ ⟹ Δ) (σ : Label → Label) : ⊢ᵍ Γ⟦σ⟧ ⟹ Δ⟦σ⟧ := replaceLabelₕ (.ofDerivation d) σ |>.drv
-
-end ReplaceLabel
-
-
-section Weakening
-
-open DerivationWithHeight
-
-noncomputable def wkFmlLₕAux (d : ⊢ᵍ[k] S) : ⊢ᵍ[k] ⟨(x ∶ φ) ::ₘ S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ := by
-  obtain ⟨d, kh⟩ := d;
-  induction d with
-  | initAtom y a => exact ofTaller (by omega) $ initAtomₕ' y a (by simp) (by simp);
-  | initBot y => exact ofTaller (by omega) $ initBotₕ' y (by simp);
-  | _ => sorry;
-
-def wkFmlLₕ (d : ⊢ᵍ[k] Γ ⟹ Δ) : ⊢ᵍ[k] ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := by
-  obtain ⟨d, kh⟩ := d;
-  cases d with
-  | initAtom y a => exact ofTaller (by omega) $ initAtomₕ' y a (by simp) (by simp);
-  | initBot y => exact ofTaller (by omega) $ initBotₕ' y (by simp);
-  | _ => sorry;
-
-def wkFmlL (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ := wkFmlLₕ (d := .ofDerivation d) |>.drv
-
-
-def wkRelLₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := by sorry
-
-def wkRelL (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := wkRelLₕ (d := .ofDerivation d) |>.drv
-
-
-def wkFmlRₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := by sorry
-
-def wkFmlR (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := wkFmlRₕ (d := .ofDerivation d) |>.drv
-
-
-def wkRelRₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := by sorry
-
-def wkRelR (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := wkRelRₕ (d := .ofDerivation d) |>.drv
-
-end Weakening
-
-
-
-section Inv
-
-def implyRInvₕ (d : ⊢ᵍ[h] (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) : ⊢ᵍ[h] (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) := by sorry
-
-def implyRInv (d : ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) := implyRInvₕ (d := .ofDerivation d) |>.drv
-
-end Inv
-
-
-section Cut
-
-def cutRel (d₁ : ⊢ᵍ Γ₁ ⟹ ⟨Δ₁.fmls, (x, y) ::ₘ Δ₁.rels⟩) (d₂ : ⊢ᵍ ⟨Γ₂.fmls, (x, y) ::ₘ Γ₂.rels⟩ ⟹ Δ₂) : ⊢ᵍ (Γ₁ + Γ₂) ⟹ (Δ₁ + Δ₂) := by
-  sorry
-
-def cutFml (d₁ : ⊢ᵍ Γ₁ ⟹ ⟨(x ∶ φ) ::ₘ Δ₁.fmls, Δ₁.rels⟩) (d₂ : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ₂.fmls, Γ₂.rels⟩ ⟹ Δ₂) : ⊢ᵍ (Γ₁ + Γ₂) ⟹ (Δ₁ + Δ₂) := by
-  sorry
-
-end Cut
-
+end
 
 end Gentzen
 
