@@ -132,7 +132,7 @@ theorem soundness {S : Sequent} (d : ⊢ᵍ S) : ∀ (M : Kripke.Model), ∀ (f 
       have : ¬(f a) ≺ (f b) := hΔ₁ a b h₁;
       contradiction;
 
-theorem soundness_fml {φ : Formula ℕ} : ⊢ᵍ! ↑φ → ∀ (M : Kripke.Model), ∀ (f : Assignment M), f 0 ⊧ φ := by
+theorem soundness_fml {φ : Formula PropVar} : ⊢ᵍ! ↑φ → ∀ (M : Kripke.Model), ∀ (f : Assignment M), f 0 ⊧ φ := by
   rintro ⟨d⟩ M f;
   simpa [Sequent.Satisfies] using soundness d M f
 

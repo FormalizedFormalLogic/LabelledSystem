@@ -8,7 +8,7 @@ namespace Labelled.Gentzen
 
 open SequentPart
 
-variable {x : Label} {φ ψ χ : Formula ℕ}
+variable {x : Label} {φ ψ χ : Formula PropVar}
 
 def imply₁ : ⊢ᵍ ↑(φ ➝ ψ ➝ φ) := by
   apply impR₂ (Δ := ⟨_, _⟩);

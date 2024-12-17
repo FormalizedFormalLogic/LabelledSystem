@@ -9,6 +9,9 @@ namespace Labelled
 
 abbrev Label := ℕ
 
+abbrev PropVar := ℕ
+
+
 def Assignment (M : Kripke.Model) := Label → M.World
 
 
@@ -70,7 +73,7 @@ end LabelTerm
 
 structure LabelledFormula where
   label : Label
-  formula : Formula ℕ
+  formula : Formula PropVar
 deriving DecidableEq, Repr
 
 namespace LabelledFormula
@@ -83,7 +86,7 @@ notation lφ "⟦" σ "⟧" => labelReplace σ lφ
 
 section
 
-variable {x y z : Label} {φ ψ : Formula ℕ} {σ : LabelReplace}
+variable {x y z : Label} {φ ψ : Formula PropVar} {σ : LabelReplace}
 
 @[simp]
 lemma def_labelReplace : (x ∶ φ).labelReplace σ = (σ x ∶ φ) := by rfl
@@ -106,7 +109,7 @@ protected instance semantics {M : Kripke.Model} : Semantics (LabelledFormula) (A
 
 variable {M : Kripke.Model} {f : Assignment M}
 variable {x y : Label}
-variable {φ ψ : Formula ℕ} {xφ: LabelledFormula}
+variable {φ ψ : Formula PropVar} {xφ: LabelledFormula}
 
 @[simp] protected lemma iff_models : f ⊧ (x ∶ φ) ↔ f x ⊧ φ := by tauto;
 
@@ -121,7 +124,7 @@ end LabelledFormula
 
 structure LabelledNNFormula where
   label : Label
-  formula : NNFormula ℕ
+  formula : NNFormula PropVar
 deriving DecidableEq, Repr
 
 end Labelled
