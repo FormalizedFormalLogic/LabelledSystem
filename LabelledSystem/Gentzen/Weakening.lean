@@ -120,19 +120,30 @@ noncomputable def wkFmlLₕ (d : ⊢ᵍ[k] S) : ⊢ᵍ[k] ⟨(x ∶ φ) ::ₘ S.
 
 noncomputable def wkFmlL (d : ⊢ᵍ S) : ⊢ᵍ ⟨(x ∶ φ) ::ₘ S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ := wkFmlLₕ (d := .ofDerivation d) |>.drv
 
-
-def wkRelLₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := by sorry
-
-def wkRelL (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ ⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ := wkRelLₕ (d := .ofDerivation d) |>.drv
-
-
-def wkFmlRₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := by sorry
-
-def wkFmlR (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩ := wkFmlRₕ (d := .ofDerivation d) |>.drv
+noncomputable def wkFmlLₐ (x φ) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨(x ∶ φ) ::ₘ Φ, X⟩ ⟹ ⟨Ψ, Y⟩)
+  := wkFmlL
 
 
-def wkRelRₕ (d : ⊢ᵍ[h] Γ ⟹ Δ) : ⊢ᵍ[h] Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := by sorry
+def wkRelLₕ (d : ⊢ᵍ[h] S) : ⊢ᵍ[h] ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ Δ := by sorry
 
-def wkRelR (d : ⊢ᵍ Γ ⟹ Δ) : ⊢ᵍ Γ ⟹ ⟨Δ.fmls, (x, y) ::ₘ Δ.rels⟩ := wkRelRₕ (d := .ofDerivation d) |>.drv
+def wkRelL (d : ⊢ᵍ S) : ⊢ᵍ ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ := wkRelLₕ (d := .ofDerivation d) |>.drv
+
+noncomputable def wkRelLₐ (x y) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ, (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩)
+  := wkRelL
+
+
+def wkFmlRₕ (d : ⊢ᵍ[h] S) : ⊢ᵍ[h] Γ ⟹ ⟨(x ∶ φ) ::ₘ S.Δ.fmls, S.Δ.rels⟩ := by sorry
+
+def wkFmlR (d : ⊢ᵍ S) : ⊢ᵍ Γ ⟹ ⟨(x ∶ φ) ::ₘ S.Δ.fmls, S.Δ.rels⟩ := wkFmlRₕ (d := .ofDerivation d) |>.drv
+
+
+def wkRelRₕ (d : ⊢ᵍ[h] S) : ⊢ᵍ[h] Γ ⟹ ⟨S.Δ.fmls, (x, y) ::ₘ S.Δ.rels⟩ := by sorry
+
+def wkRelR (d : ⊢ᵍ S) : ⊢ᵍ Γ ⟹ ⟨S.Δ.fmls, (x, y) ::ₘ S.Δ.rels⟩ := wkRelRₕ (d := .ofDerivation d) |>.drv
+
 
 end LO.Modal.Labelled.Gentzen

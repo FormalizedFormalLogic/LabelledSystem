@@ -227,6 +227,33 @@ export Derivation (initAtom initBot impL impR boxL boxR)
 abbrev Derivable (S : Sequent) : Prop := Nonempty (⊢ᵍ S)
 prefix:40 "⊢ᵍ! " => Derivable
 
+section
+
+open SequentPart
+
+def impRₐ (x φ ψ) :
+  (⊢ᵍ (⟨(x ∶ φ) ::ₘ Φ, X⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Ψ, Y⟩)) →
+  (⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Ψ, Y⟩))
+  := impR (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x φ ψ
+
+def impLₐ (x φ ψ) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ φ) ::ₘ Ψ, Y⟩) →
+  ⊢ᵍ (⟨(x ∶ ψ) ::ₘ Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨(x ∶ φ ➝ ψ) ::ₘ Φ, X⟩ ⟹ ⟨Ψ, Y⟩)
+  := impL (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x φ ψ
+
+def boxLₐ (x y φ) :
+  (⊢ᵍ (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Φ, (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩)) →
+  (⊢ᵍ (⟨(x ∶ □φ) ::ₘ Φ, (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩))
+  := boxL (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x y φ
+
+def boxRₐ (x y φ) : x ≠ y → isFreshLabel y (⟨Φ, X⟩) → isFreshLabel y (⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ, (x, y) ::ₘ X⟩ ⟹ ⟨(y ∶ φ) ::ₘ Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ □φ) ::ₘ Ψ, Y⟩)
+  := boxR (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x y φ
+
+end
+
 
 namespace Derivation
 
@@ -421,8 +448,6 @@ noncomputable def rec'
 end DerivationWithHeight
 
 
-open SequentPart
-
 
 section
 
@@ -532,6 +557,7 @@ def exchangeFml₃L
   := exchangeFml₃Lₕ (k := d.height) ⟨d, by simp⟩ |>.drv
 
 end
+
 
 end Gentzen
 

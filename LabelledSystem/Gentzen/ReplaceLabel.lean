@@ -47,4 +47,9 @@ noncomputable def replaceLabelₕ (x y) (d : ⊢ᵍ[k] S) : ⊢ᵍ[k] S⟦x ↦ 
 
 noncomputable def replaceLabel (x y) (d : ⊢ᵍ S) : ⊢ᵍ S⟦x ↦ y⟧ := replaceLabelₕ x y (.ofDerivation d) |>.drv
 
+noncomputable def replaceLabelₐ (x y) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ⟦x ↦ y⟧, X⟦x ↦ y⟧⟩ ⟹ ⟨Ψ⟦x ↦ y⟧, Y⟦x ↦ y⟧⟩)
+  := replaceLabel x y
+
 end LO.Modal.Labelled.Gentzen
