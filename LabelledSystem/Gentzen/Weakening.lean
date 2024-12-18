@@ -126,9 +126,217 @@ noncomputable def wkFmlLₐ (x φ) :
   := wkFmlL
 
 
-def wkRelLₕ (d : ⊢ᵍ[h] S) : ⊢ᵍ[h] ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ Δ := by sorry
+noncomputable def wkRelLₕ (d : ⊢ᵍ[h] S) : ⊢ᵍ[h] ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ := by
+  induction d using DerivationWithHeight.rec' generalizing x y with
+  | hAtom z a => exact initAtom_memₕ z a (by simp) (by simp);
+  | hBot z => exact initBot_memₕ z (by simp);
+  | @hImpR S z φ ψ k d ih =>
+    suffices ⊢ᵍ[k + 1] ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ ⟨(z ∶ φ ➝ ψ) ::ₘ S.Δ.fmls, S.Δ.rels⟩ by simpa;
+    exact impRₕ (S := ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ) z φ ψ $ ih;
+  | @hImpL S z φ ψ k₁ k₂ d₁ d₂ ih₁ ih₂ =>
+    suffices ⊢ᵍ[max k₁ k₂ + 1] ⟨(z ∶ φ ➝ ψ) ::ₘ S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ by simpa;
+    exact impLₕ (S := ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ) z φ ψ ih₁ ih₂;
+  | @hBoxL S z w φ k d ih =>
+    suffices ⊢ᵍ[k + 1] ⟨(z ∶ □φ) ::ₘ S.Γ.fmls, (x, y) ::ₘ (z, w) ::ₘ S.Γ.rels⟩ ⟹ S.Δ by simpa;
+    refine exchangeRelLₕ $ @boxLₕ (S := ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ) k z w φ ?_;
+    exact exchangeRelLₕ ih;
+  | @hBoxR S z w hzw hΓw hΔw φ k d ih =>
+    by_cases ewx : w = x <;> by_cases ewy : w = y
+    . subst ewx; subst ewy;
+      let v : Label := ((⟨S.Γ.fmls, (w, z) ::ₘ S.Γ.rels⟩) ⟹ S.Δ).getFreshLabel;
+      have := boxRₕ
+        (S := ⟨S.Γ.fmls, (v, v) ::ₘ S.Γ.rels⟩ ⟹ S.Δ)
+        (k := k) z w φ hzw ?_ hΔw (exchangeRelLₕ ih);
+      have := @replaceLabelₕ
+        (x := v) (y := w) (k := k + 1)
+        (S := ⟨S.Γ.fmls, (v, v) ::ₘ S.Γ.rels⟩ ⟹ ⟨(z ∶ □φ) ::ₘ S.Δ.fmls, S.Δ.rels ⟩)
+        this;
+      have e₁ : S.Γ.fmls⟦v ↦ w⟧ = S.Γ.fmls := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l, ξ⟩ hlξ;
+        apply LabelledFormula.labelReplace_specific_not;
+        rintro rfl;
+        refine not_include_labelledFml_of_isFreshLabel ?_ ξ hlξ;
+        apply getFreshLabel_mono (Δ := ⟨S.Γ.fmls, (v, v) ::ₘ S.Γ.rels⟩);
+        . rfl;
+        . simp [Multiset.subset_cons];
+      have e₂ : S.Δ.fmls⟦v ↦ w⟧ = S.Δ.fmls := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l, ξ⟩ hlξ;
+        apply LabelledFormula.labelReplace_specific_not;
+        rintro rfl;
+        refine not_include_labelledFml_of_isFreshLabel ?_ ξ hlξ;
+        exact Sequent.getFreshLabel_isFreshLabel₂;
+      have e₃ : S.Γ.rels⟦v ↦ w⟧ = S.Γ.rels := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l₁, l₂⟩ hl;
+        apply LabelTerm.labelReplace_specific_not_both;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₁ Sequent.getFreshLabel_isFreshLabel₁ l₂ hl;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₂ Sequent.getFreshLabel_isFreshLabel₁ l₁ hl;
+      have e₄ : S.Δ.rels⟦v ↦ w⟧ = S.Δ.rels := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l₁, l₂⟩ hl;
+        apply LabelTerm.labelReplace_specific_not_both;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₁ Sequent.getFreshLabel_isFreshLabel₂ l₂ hl;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₂ Sequent.getFreshLabel_isFreshLabel₂ l₁ hl;
+      have e₅ : (v ↦ w) w = w := by simp; -- TODO: this should be a lemma
+      have e₆ : (v ↦ w) z = z := by
+        suffices v ≠ z by simp; tauto;
+        exact Sequent.getFreshLabel_relΓ₂ (x := w) (y := z) (by simp);
+      simpa [e₁, e₂, e₃, e₄, e₅, e₆] using this;
+      . apply of_isFreshLabel;
+        . apply not_include_labelledFml_of_isFreshLabel hΓw;
+        . intro l;
+          suffices (v ≠ w) ∧ (w, l) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . apply Sequent.getFreshLabel_relΓ₁ (y := z) (by simp);
+          . apply not_include_relTerm_of_isFreshLabel₁ hΓw;
+        . intro l;
+          suffices (v ≠ w) ∧ (l, w) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . apply Sequent.getFreshLabel_relΓ₁ (y := z) (by simp);
+          . apply not_include_relTerm_of_isFreshLabel₂ hΓw;
+    . subst ewx;
+      let v : Label := ((⟨S.Γ.fmls, (w, y) ::ₘ (w, z) ::ₘ S.Γ.rels⟩) ⟹ S.Δ).getFreshLabel;
+      have := boxRₕ
+        (S := ⟨S.Γ.fmls, (v, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ)
+        (k := k) z w φ hzw ?_ hΔw (exchangeRelLₕ ih);
+      have := @replaceLabelₕ
+        (x := v) (y := w) (k := k + 1)
+        (S := ⟨S.Γ.fmls, (v, y) ::ₘ S.Γ.rels⟩ ⟹ ⟨(z ∶ □φ) ::ₘ S.Δ.fmls, S.Δ.rels ⟩)
+        this;
+      have e₁ : S.Γ.fmls⟦v ↦ w⟧ = S.Γ.fmls := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l, ξ⟩ hlξ;
+        apply LabelledFormula.labelReplace_specific_not;
+        rintro rfl;
+        refine not_include_labelledFml_of_isFreshLabel ?_ ξ hlξ;
+        apply getFreshLabel_mono (Δ := ⟨S.Γ.fmls, (v, y) ::ₘ S.Γ.rels⟩);
+        . rfl;
+        . simp [Multiset.subset_cons];
+      have e₂ : S.Δ.fmls⟦v ↦ w⟧ = S.Δ.fmls := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l, ξ⟩ hlξ;
+        apply LabelledFormula.labelReplace_specific_not;
+        rintro rfl;
+        refine not_include_labelledFml_of_isFreshLabel ?_ ξ hlξ;
+        exact Sequent.getFreshLabel_isFreshLabel₂;
+      have e₃ : S.Γ.rels⟦v ↦ w⟧ = S.Γ.rels := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l₁, l₂⟩ hl;
+        apply LabelTerm.labelReplace_specific_not_both;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₁ Sequent.getFreshLabel_isFreshLabel₁ l₂ hl;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₂ Sequent.getFreshLabel_isFreshLabel₁ l₁ hl;
+      have e₄ : S.Δ.rels⟦v ↦ w⟧ = S.Δ.rels := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l₁, l₂⟩ hl;
+        apply LabelTerm.labelReplace_specific_not_both;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₁ Sequent.getFreshLabel_isFreshLabel₂ l₂ hl;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₂ Sequent.getFreshLabel_isFreshLabel₂ l₁ hl;
+      have e₅ : (v ↦ w) y = y := by
+        suffices v ≠ y by simp; tauto;
+        exact Sequent.getFreshLabel_relΓ₂ (x := w) (y := y) (by simp);
+      have e₆ : (v ↦ w) z = z := by
+        suffices v ≠ z by simp; tauto;
+        exact Sequent.getFreshLabel_relΓ₂ (x := w) (y := z) (by simp);
+      simpa [e₁, e₂, e₃, e₄, e₅, e₆] using this;
+      . apply of_isFreshLabel;
+        . apply not_include_labelledFml_of_isFreshLabel hΓw;
+        . intro l;
+          suffices (v ≠ w) ∧ (w, l) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . apply Sequent.getFreshLabel_relΓ₁ (y := y); simp;
+          . apply not_include_relTerm_of_isFreshLabel₁ hΓw;
+        . intro l;
+          suffices (v ≠ w) ∧ (l, w) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . apply Sequent.getFreshLabel_relΓ₁ (y := y); simp;
+          . apply not_include_relTerm_of_isFreshLabel₂ hΓw;
+    . subst ewy;
+      let v : Label := ((⟨S.Γ.fmls, (x, w) ::ₘ (w, z) ::ₘ S.Γ.rels⟩) ⟹ S.Δ).getFreshLabel;
+      have := boxRₕ
+        (S := ⟨S.Γ.fmls, (x, v) ::ₘ S.Γ.rels⟩ ⟹ S.Δ)
+        (k := k) z w φ hzw ?_ hΔw (exchangeRelLₕ ih);
+      have := @replaceLabelₕ
+        (x := v) (y := w) (k := k + 1)
+        (S := ⟨S.Γ.fmls, (x, v) ::ₘ S.Γ.rels⟩ ⟹ ⟨(z ∶ □φ) ::ₘ S.Δ.fmls, S.Δ.rels ⟩)
+        this;
+      have e₁ : S.Γ.fmls⟦v ↦ w⟧ = S.Γ.fmls := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l, ξ⟩ hlξ;
+        apply LabelledFormula.labelReplace_specific_not;
+        rintro rfl;
+        refine not_include_labelledFml_of_isFreshLabel ?_ ξ hlξ;
+        apply getFreshLabel_mono (Δ := ⟨S.Γ.fmls, (x, v) ::ₘ S.Γ.rels⟩);
+        . rfl;
+        . simp [Multiset.subset_cons];
+      have e₂ : S.Δ.fmls⟦v ↦ w⟧ = S.Δ.fmls := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l, ξ⟩ hlξ;
+        apply LabelledFormula.labelReplace_specific_not;
+        rintro rfl;
+        refine not_include_labelledFml_of_isFreshLabel ?_ ξ hlξ;
+        exact Sequent.getFreshLabel_isFreshLabel₂;
+      have e₃ : S.Γ.rels⟦v ↦ w⟧ = S.Γ.rels := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l₁, l₂⟩ hl;
+        apply LabelTerm.labelReplace_specific_not_both;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₁ Sequent.getFreshLabel_isFreshLabel₁ l₂ hl;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₂ Sequent.getFreshLabel_isFreshLabel₁ l₁ hl;
+      have e₄ : S.Δ.rels⟦v ↦ w⟧ = S.Δ.rels := by
+        apply Multiset.map_id_domain;
+        rintro ⟨l₁, l₂⟩ hl;
+        apply LabelTerm.labelReplace_specific_not_both;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₁ Sequent.getFreshLabel_isFreshLabel₂ l₂ hl;
+        . rintro rfl;
+          exact not_include_relTerm_of_isFreshLabel₂ Sequent.getFreshLabel_isFreshLabel₂ l₁ hl;
+      have e₅ : (v ↦ w) x = x := by
+        suffices v ≠ x by simp; tauto;
+        exact Sequent.getFreshLabel_relΓ₁ (x := x) (y := w) (by simp);
+      have e₆ : (v ↦ w) z = z := by
+        suffices v ≠ z by simp; tauto;
+        exact Sequent.getFreshLabel_relΓ₂ (x := w) (y := z) (by simp);
+      simpa [e₁, e₂, e₃, e₄, e₅, e₆] using this;
+      . apply of_isFreshLabel;
+        . apply not_include_labelledFml_of_isFreshLabel hΓw;
+        . intro l;
+          suffices (v ≠ w) ∧ (w, l) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . apply Sequent.getFreshLabel_relΓ₁ (y := z); simp;
+          . apply not_include_relTerm_of_isFreshLabel₁ hΓw;
+        . intro l;
+          suffices (v ≠ w) ∧ (l, w) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . apply Sequent.getFreshLabel_relΓ₁ (y := z); simp;
+          . apply not_include_relTerm_of_isFreshLabel₂ hΓw;
+    . suffices ⊢ᵍ[k + 1] ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ ⟨(z ∶ □φ) ::ₘ S.Δ.fmls, S.Δ.rels⟩ by simpa;
+      refine @boxRₕ (S := ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ) k z w φ hzw ?_ hΔw ?_;
+      . apply of_isFreshLabel;
+        . apply not_include_labelledFml_of_isFreshLabel hΓw;
+        . intro v;
+          suffices (w ≠ x) ∧ (w, v) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . assumption;
+          . apply not_include_relTerm_of_isFreshLabel₁ hΓw;
+        . intro v;
+          suffices (w ≠ x) ∧ (v, w) ∉ S.Γ.rels by simp; constructor <;> tauto;
+          constructor;
+          . assumption;
+          . apply not_include_relTerm_of_isFreshLabel₂ hΓw;
+      . exact exchangeRelLₕ ih;
 
-def wkRelL (d : ⊢ᵍ S) : ⊢ᵍ ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ := wkRelLₕ (d := .ofDerivation d) |>.drv
+noncomputable def wkRelL (d : ⊢ᵍ S) : ⊢ᵍ ⟨S.Γ.fmls, (x, y) ::ₘ S.Γ.rels⟩ ⟹ S.Δ := wkRelLₕ (d := .ofDerivation d) |>.drv
 
 noncomputable def wkRelLₐ (x y) :
   ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →

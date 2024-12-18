@@ -523,7 +523,7 @@ end
 section
 
 variable {S : Sequent}
-variable {x y z : Label} {φ ψ ξ : Formula PropVar}
+variable {x y z w : Label} {φ ψ ξ : Formula PropVar}
 
 def exchangeFmlLₕ :
   (⊢ᵍ[k] (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ Φ, X⟩ ⟹ Δ)) →
@@ -555,6 +555,22 @@ def exchangeFml₃L
   (d : ⊢ᵍ (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ Φ, X⟩ ⟹ Δ))
   : ⊢ᵍ (⟨(y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ (x ∶ φ) ::ₘ Φ, X⟩ ⟹ Δ)
   := exchangeFml₃Lₕ (k := d.height) ⟨d, by simp⟩ |>.drv
+
+
+def exchangeRelLₕ :
+  (⊢ᵍ[k] (⟨Φ, (x, y) ::ₘ (z, w) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩)) →
+  (⊢ᵍ[k] (⟨Φ, (z, w) ::ₘ (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩))
+  := by
+  suffices (x, y) ::ₘ (z, w) ::ₘ X = (z, w) ::ₘ (x, y) ::ₘ X by
+    rw [this];
+    tauto;
+  simp_rw [←Multiset.singleton_add];
+  abel;
+
+def exchangeRelL
+  (d : ⊢ᵍ (⟨Φ, (x, y) ::ₘ (z, w) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩))
+  : ⊢ᵍ (⟨Φ, (z, w) ::ₘ (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩)
+  := exchangeRelLₕ (k := d.height) ⟨d, by simp⟩ |>.drv
 
 end
 
