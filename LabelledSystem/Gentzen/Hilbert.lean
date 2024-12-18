@@ -1,6 +1,6 @@
-import LabelledSystem.Gentzen.Cut
 import LabelledSystem.Gentzen.Weakening
 import LabelledSystem.Gentzen.Inverted
+import LabelledSystem.Gentzen.Cut
 
 namespace LO.Modal
 
@@ -8,78 +8,101 @@ namespace Labelled.Gentzen
 
 open SequentPart
 
+section
+
+variable {Φ Ψ : Multiset LabelledFormula} {X Y : Multiset LabelTerm}
+
+def impRₐ (x φ ψ) :
+  (⊢ᵍ (⟨(x ∶ φ) ::ₘ Φ, X⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Ψ, Y⟩)) →
+  (⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Ψ, Y⟩))
+  := impR (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x φ ψ
+
+def impLₐ (x φ ψ) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ φ) ::ₘ Ψ, Y⟩) →
+  ⊢ᵍ (⟨(x ∶ ψ) ::ₘ Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨(x ∶ φ ➝ ψ) ::ₘ Φ, X⟩ ⟹ ⟨Ψ, Y⟩)
+  := impL (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x φ ψ
+
+def boxLₐ (x y φ) :
+  (⊢ᵍ (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Φ, (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩)) →
+  (⊢ᵍ (⟨(x ∶ □φ) ::ₘ Φ, (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩))
+  := boxL (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x y φ
+
+def boxRₐ (x y φ) : x ≠ y → isFreshLabel y (⟨Φ, X⟩) → isFreshLabel y (⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ, (x, y) ::ₘ X⟩ ⟹ ⟨(y ∶ φ) ::ₘ Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ □φ) ::ₘ Ψ, Y⟩)
+  := boxR (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) x y φ
+
+noncomputable def wkFmlLₐ (x φ) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨(x ∶ φ) ::ₘ Φ, X⟩ ⟹ ⟨Ψ, Y⟩)
+  := wkFmlL
+
+noncomputable def wkRelLₐ (x y) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ, (x, y) ::ₘ X⟩ ⟹ ⟨Ψ, Y⟩)
+  := by sorry
+
+noncomputable def replaceLabelₐ (x y : Label) :
+  ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) →
+  ⊢ᵍ (⟨Φ⟦x ↦ y⟧, X⟦x ↦ y⟧⟩ ⟹ ⟨Ψ⟦x ↦ y⟧, Y⟦x ↦ y⟧⟩)
+  := replaceLabel x y
+
+end
+
+
+
 variable {x : Label} {φ ψ χ : Formula PropVar}
 
 def imply₁ : ⊢ᵍ ↑(φ ➝ ψ ➝ φ) := by
-  apply impR₂ (Δ := ⟨_, _⟩);
-  apply impR₂ (Δ := ⟨_, _⟩);
-  have e : (0 ∶ ψ) ::ₘ {0 ∶ φ} = (0 ∶ φ) ::ₘ {0 ∶ ψ} := by apply Multiset.cons_swap;
-  exact initFml' default φ (by simp) (by simp);
+  apply impRₐ;
+  apply impRₐ;
+  exact initFml_mem 0 φ (by simp) (by simp);
 
 def imply₂ : ⊢ᵍ ↑((φ ➝ ψ ➝ χ) ➝ (φ ➝ ψ) ➝ φ ➝ χ) := by
-  letI x : Label := default;
-  apply impR₂ (Δ := ⟨_, _⟩);
-  apply impR₂ (Δ := ⟨_, _⟩);
-  apply impR₂ (Δ := ⟨_, _⟩);
-  rw [Multiset.cons_swap];
-  apply impL₂ (Γ := ⟨{0 ∶ φ, 0 ∶ φ ➝ ψ ➝ χ}, _⟩);
-  . exact initFml₂' 0 φ (by simp) (by simp [x]);
-  . suffices ⊢ᵍ ⟨(0 ∶ φ ➝ ψ ➝ χ) ::ₘ {0 ∶ ψ, 0 ∶ φ}, ∅⟩ ⟹ ⟨{0 ∶ χ}, ∅⟩ by
-      have e : (0 ∶ ψ) ::ₘ (0 ∶ φ) ::ₘ {0 ∶ φ ➝ ψ ➝ χ} = (0 ∶ φ ➝ ψ ➝ χ) ::ₘ {0 ∶ ψ, 0 ∶ φ} := by
-        ext;
-        simp_rw [Multiset.insert_eq_cons, Multiset.count_cons, Multiset.count_singleton];
-        omega;
-      simpa [e];
-    apply impL₂ (Γ := ⟨_, _⟩);
-    . exact initFml' 0 φ (by simp) (by simp);
-    . apply impL₂ (Γ := ⟨_, _⟩);
-      . exact initFml' 0 ψ (by simp) (by simp);
-      . exact initFml' 0 χ (by simp) (by simp);
+  apply impRₐ;
+  apply impRₐ;
+  apply impRₐ;
+  apply exchangeFmlL;
+  apply impLₐ;
+  . exact initFml_mem 0 φ (by simp) (by simp);
+  . apply exchangeFml₃L;
+    apply impLₐ;
+    . exact initFml_mem 0 φ (by simp) (by simp);
+    . apply impLₐ;
+      . exact initFml_mem 0 ψ (by simp) (by simp);
+      . exact initFml_mem 0 χ (by simp) (by simp);
 
 def elimContra : ⊢ᵍ ↑((∼ψ ➝ ∼φ) ➝ (φ ➝ ψ)) := by
-  apply impR₂ (Δ := ⟨_, _⟩);
-  apply impR₂ (Δ := ⟨_, _⟩);
-  rw [Multiset.cons_swap];
-  apply impL₂ (Γ := ⟨{0 ∶ φ}, _⟩);
-  . -- TODO: `⊢ᵍ Γ ⟹ ⟨(0 ∶ ∼ψ) ::ₘ {0 ∶ ψ}, Δ.rels⟩`
-    apply impR₂ (Δ := ⟨_, _⟩);
-    exact initFml' default ψ (by simp) (by simp);
-  . -- TODO: `⊢ᵍ ⟨(0 ∶ ∼φ) ::ₘ {0 ∶ φ} :: Γ.fmls, ∅⟩ ⟹ Δ`
-    apply impL₂ (Γ := ⟨{0 ∶ φ}, _⟩);
-    . exact initFml' default φ (by simp) (by simp);
-    . apply initBot' 0 (by tauto);
+  apply impRₐ;
+  apply impRₐ;
+  apply exchangeFmlL;
+  apply impLₐ;
+  . apply impRₐ;
+    exact initFml_mem 0 ψ (by simp) (by simp);
+  . apply impLₐ;
+    . exact initFml_mem 0 φ (by simp) (by simp);
+    . exact initBot_mem 0 (by tauto);
 
 def axiomK : ⊢ᵍ ↑(□(φ ➝ ψ) ➝ □φ ➝ □ψ) := by
-  apply impR₂ (Δ := ⟨_, _⟩);
-  apply impR₂;
-  apply boxR₂ (y := 1) (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);
-  suffices ⊢ᵍ (⟨(0 ∶ □φ) ::ₘ {0 ∶ □(φ ➝ ψ)}, {(0, 1)}⟩ ⟹ ⟨{1 ∶ ψ}, ∅⟩) by simpa;
-  apply boxL₂ (Γ := ⟨_, _⟩);
-  suffices ⊢ᵍ (⟨(0 ∶ □(φ ➝ ψ)) ::ₘ (1 ∶ φ) ::ₘ {(0 ∶ □φ)}, {(0, 1)}⟩ ⟹ ⟨{1 ∶ ψ}, ∅⟩) by
-    have e : (0 ∶ □(φ ➝ ψ)) ::ₘ (1 ∶ φ) ::ₘ {0 ∶ □φ} = (0 ∶ □φ) ::ₘ (1 ∶ φ) ::ₘ {0 ∶ □(φ ➝ ψ)} := by
-      ext;
-      simp_rw [Multiset.count_cons, Multiset.count_singleton];
-      omega;
-    simpa [e];
-  apply boxL₂ (Γ := ⟨{1 ∶ φ, 0 ∶ □φ}, _⟩);
-  suffices ⊢ᵍ (⟨(1 ∶ φ ➝ ψ) ::ₘ {1 ∶ φ, 0 ∶ □φ, 0 ∶ □(φ ➝ ψ)}, {(0, 1)}⟩ ⟹ ⟨{1 ∶ ψ}, ∅⟩) by
-    have e : (0 ∶ □(φ ➝ ψ)) ::ₘ (1 ∶ φ ➝ ψ) ::ₘ (1 ∶ φ) ::ₘ {0 ∶ □φ} = (1 ∶ φ ➝ ψ) ::ₘ {1 ∶ φ, 0 ∶ □φ, 0 ∶ □(φ ➝ ψ)} := by
-      ext;
-      simp_rw [Multiset.insert_eq_cons, Multiset.count_cons, Multiset.count_singleton];
-      omega;
-    simpa [e];
-  apply impL₂ (Γ := ⟨_, _⟩);
-  . exact initFml' 1 φ (by simp) (by simp);
-  . exact initFml' 1 ψ (by simp) (by simp);
+  apply impRₐ;
+  apply impRₐ;
+  apply boxRₐ 0 1 ψ (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);
+  apply boxLₐ;
+  apply exchangeFml₃L;
+  apply boxLₐ;
+  apply exchangeFmlL;
+  apply impLₐ;
+  . exact initFml_mem 1 φ (by simp) (by simp);
+  . exact initFml_mem 1 ψ (by simp) (by simp);
 
 def mdp (d₁ : ⊢ᵍ ↑(φ ➝ ψ)) (d₂ : ⊢ᵍ ↑φ) : ⊢ᵍ ↑ψ := by
   simpa using cutFml (Δ₁ := ⟨∅, ∅⟩) (Δ₂ := ⟨{_ ∶ ψ}, ∅⟩) d₂ $ implyRInv (Δ := ⟨∅, ∅⟩) d₁;
 
-def necessitation (d : ⊢ᵍ ↑φ) : ⊢ᵍ ↑(□φ) := by
-  apply boxR₂ (Δ := ⟨∅, ∅⟩) (y := 1) (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);
-  apply wkRelL;
-  simpa [SequentPart.replaceLabel, LabelledFormula.labelReplace, LabelReplace.specific] using replaceLabel d (0 ⧸ 1);
-
+noncomputable def necessitation (d : ⊢ᵍ ↑φ) : ⊢ᵍ ↑(□φ) := by
+  apply boxRₐ 0 1 φ (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);
+  apply wkRelLₐ 0 1;
+  exact replaceLabelₐ 0 1 d;
 
 theorem ofHilbertK! (h : Hilbert.K ℕ ⊢! φ) : ⊢ᵍ! ↑φ := by
   induction h using Hilbert.Deduction.inducition_with_necOnly! with

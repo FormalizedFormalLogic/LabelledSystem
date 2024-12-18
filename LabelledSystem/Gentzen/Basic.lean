@@ -10,9 +10,30 @@ namespace Gentzen
 
 open Formula
 
+
+abbrev LabelledFormulae := Multiset LabelledFormula
+
+namespace LabelledFormulae
+
+abbrev labelReplace (σ : LabelReplace) (Φ : LabelledFormulae) : LabelledFormulae := Φ.map (.labelReplace σ)
+notation Φ "⟦" σ "⟧" => labelReplace σ Φ
+
+end LabelledFormulae
+
+
+abbrev RelTerms := Multiset LabelTerm
+
+namespace RelTerms
+
+abbrev labelReplace (σ : LabelReplace) (X : RelTerms) : RelTerms := X.map (.labelReplace σ)
+notation X "⟦" σ "⟧" => labelReplace σ X
+
+end RelTerms
+
+
 structure SequentPart where
-  fmls : Multiset LabelledFormula
-  rels : Multiset LabelTerm
+  fmls : LabelledFormulae
+  rels : RelTerms
 
 namespace SequentPart
 
@@ -92,12 +113,11 @@ lemma getFreshLabel_mono (hFmls : Γ.fmls ⊆ Δ.fmls) (hRels : Γ.rels ⊆ Δ.r
 end
 
 
-def replaceLabel (σ : LabelReplace) (Γ : SequentPart) : SequentPart :=
-  ⟨Γ.fmls.map (.labelReplace σ), Γ.rels.map (.labelReplace σ)⟩
+def replaceLabel (σ : LabelReplace) (Γ : SequentPart) : SequentPart := ⟨Γ.fmls⟦σ⟧, Γ.rels⟦σ⟧⟩
 notation Γ "⟦" σ "⟧" => SequentPart.replaceLabel σ Γ
 
 @[simp]
-lemma def_replaceLabel {Γ : SequentPart} {σ} : Γ⟦σ⟧ = ⟨Γ.fmls.map (.labelReplace σ), Γ.rels.map (.labelReplace σ)⟩ := rfl
+lemma def_replaceLabel {Γ : SequentPart} {σ} : Γ⟦σ⟧ = ⟨Γ.fmls⟦σ⟧, Γ.rels⟦σ⟧⟩ := rfl
 
 
 abbrev add (Γ Δ : SequentPart) : SequentPart := ⟨Γ.fmls + Δ.fmls, Γ.rels + Δ.rels⟩
@@ -118,11 +138,11 @@ abbrev ofFormula (φ : Formula PropVar) : Sequent := ⟨∅, ∅⟩ ⟹ ⟨{0 �
 instance : Coe (Formula PropVar) Sequent := ⟨Sequent.ofFormula⟩
 
 
-abbrev replaceLabel (σ : Label → Label) (S : Sequent) : Sequent := ⟨S.Γ⟦σ⟧, S.Δ⟦σ⟧⟩
+abbrev replaceLabel (σ : LabelReplace) (S : Sequent) : Sequent := S.Γ⟦σ⟧ ⟹ S.Δ⟦σ⟧
 notation S "⟦" σ "⟧" => Sequent.replaceLabel σ S
 
 @[simp]
-lemma def_replaceLabel {σ : LabelReplace} {S : Sequent} : S⟦σ⟧ = ⟨S.Γ⟦σ⟧, S.Δ⟦σ⟧⟩ := rfl
+lemma def_replaceLabel {σ : LabelReplace} {S : Sequent} : S⟦σ⟧ = (S.Γ⟦σ⟧ ⟹ S.Δ⟦σ⟧) := rfl
 
 
 abbrev Satisfies (M : Kripke.Model) (f : Assignment M) : Sequent → Prop := λ ⟨Γ, Δ⟩ =>
@@ -302,82 +322,7 @@ def boxRₕ (x y φ)
 end
 
 
-/-
-section
-
-def initAtomₕ' {k : ℕ} (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls) : ⊢ᵍ[k] S := by
-  suffices ⊢ᵍ[k] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls, S.Δ.rels⟩) by simpa;
-  rw [←(Multiset.cons_erase h₁), ←(Multiset.cons_erase h₂)];
-  exact ⟨initAtom (S := ⟨S.Γ.fmls.erase (x ∶ .atom a), S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls.erase (x ∶ .atom a), S.Δ.rels⟩) x a, by simp⟩
-
-def initAtom' (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls) : ⊢ᵍ S := initAtomₕ' (k := 0) x a h₁ h₂ |>.drv
-
-
-def initBotₕ' {k : ℕ} (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls) : ⊢ᵍ[k] S := by
-  suffices ⊢ᵍ[k] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ) by simpa;
-  rw [←(Multiset.cons_erase h)];
-  exact ⟨initBot (S := ⟨S.Γ.fmls.erase (x ∶ ⊥), S.Γ.rels⟩ ⟹ S.Δ) x, by simp⟩
-
-def initBot' (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls) : ⊢ᵍ S := initBotₕ' (k := 0) x h |>.drv
-
-
-def impL₂ :
-  ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) →
-  ⊢ᵍ (⟨(x ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ) →
-  ⊢ᵍ (⟨(x ∶ φ ➝ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)
-  := impL (S := Γ ⟹ Δ) x φ ψ
-
-def impLₕ :
-  (⊢ᵍ[k₁] (Γ ⟹ ⟨(x ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩)) →
-  (⊢ᵍ[k₂] (⟨(x ∶ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)) →
-  (⊢ᵍ[max k₁ k₂ + 1] (⟨(x ∶ φ ➝ ψ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ Δ)) := by
-  rintro ⟨d₁, hk₁⟩ ⟨d₂, hk₂⟩;
-  exact ⟨impL₂ d₁ d₂, by dsimp [impL₂]; omega⟩;
-
-
-def impR₂ :
-  ⊢ᵍ (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩) →
-  ⊢ᵍ (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)
-  := impR (S := Γ ⟹ Δ) x φ ψ
-
-def impRₕ :
-  (⊢ᵍ[h] (⟨(x ∶ φ) ::ₘ Γ.fmls, Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) →
-  (⊢ᵍ[h + 1] (Γ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Δ.fmls, Δ.rels⟩)) := by
-  rintro ⟨d, hk⟩;
-  exact ⟨impR₂ d, by simpa [impR₂]⟩
-
-
-def boxL₂ :
-  ⊢ᵍ (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ) →
-  ⊢ᵍ (⟨(x ∶ □φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)
-  := boxL (S := Γ ⟹ Δ) x y φ
-
-def boxLₕ :
-  (⊢ᵍ[k] (⟨(x ∶ □φ) ::ₘ (y ∶ φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)) →
-  (⊢ᵍ[k + 1] (⟨(x ∶ □φ) ::ₘ Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ Δ)) := by
-  rintro ⟨d, hk⟩;
-  exact ⟨boxL₂ d, by simpa [boxL₂]⟩
-
-
-def boxR₂ : x ≠ y → Γ.isFreshLabel y → Δ.isFreshLabel y →
-  ⊢ᵍ (⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ ⟨(y ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩) →
-  ⊢ᵍ (Γ ⟹ ⟨(x ∶ □φ) ::ₘ Δ.fmls, Δ.rels⟩)
-  := boxR (S := Γ ⟹ Δ) x y φ
-
-def boxRₕ (hxy : x ≠ y) (hΓ : Γ.isFreshLabel y) (hΔ : Δ.isFreshLabel y) :
-  (⊢ᵍ[h] (⟨Γ.fmls, (x, y) ::ₘ Γ.rels⟩ ⟹ ⟨(y ∶ φ) ::ₘ Δ.fmls, Δ.rels⟩)) →
-  (⊢ᵍ[h + 1] (Γ ⟹ ⟨(x ∶ □φ) ::ₘ Δ.fmls, Δ.rels⟩)) := by
-  rintro ⟨d, hk⟩;
-  exact ⟨boxR₂ hxy hΓ hΔ d, by simpa [boxR₂]⟩
-
-end
--/
-
-
 namespace DerivationWithHeight
-
-#check Derivation.rec
-#check DerivationWithHeight.rec
 
 noncomputable def rec'
   (motive : ∀ (S k), (⊢ᵍ[k] S) → Sort*)
@@ -481,23 +426,34 @@ open SequentPart
 
 section
 
-def initAtom_memₕ {k : ℕ} (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls)
+def initAtom_memₕ
+  {k : ℕ} (x a)
+  (h₁ : (x ∶ atom a) ∈ S.Γ.fmls)
+  (h₂ : (x ∶ atom a) ∈ S.Δ.fmls)
   : ⊢ᵍ[k] S := by
   suffices ⊢ᵍ[k] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls, S.Δ.rels⟩) by simpa;
   rw [←(Multiset.cons_erase h₁), ←(Multiset.cons_erase h₂)];
   exact ⟨initAtom (S := ⟨S.Γ.fmls.erase (x ∶ .atom a), S.Γ.rels⟩ ⟹ ⟨S.Δ.fmls.erase (x ∶ .atom a), S.Δ.rels⟩) x a, by simp⟩
 
-def initAtom_mem (x a) (h₁ : (x ∶ atom a) ∈ S.Γ.fmls) (h₂ : (x ∶ atom a) ∈ S.Δ.fmls)
+def initAtom_mem
+  (x a)
+  (h₁ : (x ∶ atom a) ∈ S.Γ.fmls)
+  (h₂ : (x ∶ atom a) ∈ S.Δ.fmls)
   : ⊢ᵍ S := initAtom_memₕ (k := 0) x a h₁ h₂ |>.drv
 
 
-def initBot_memₕ {k : ℕ} (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls)
+def initBot_memₕ
+  {k : ℕ}
+  (x)
+  (h : (x ∶ ⊥) ∈ S.Γ.fmls)
   : ⊢ᵍ[k] S := by
   suffices ⊢ᵍ[k] (⟨S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ) by simpa;
   rw [←(Multiset.cons_erase h)];
   exact ⟨initBot (S := ⟨S.Γ.fmls.erase (x ∶ ⊥), S.Γ.rels⟩ ⟹ S.Δ) x, by simp⟩
 
-def initBot_mem (x) (h : (x ∶ ⊥) ∈ S.Γ.fmls)
+def initBot_mem
+  (x)
+  (h : (x ∶ ⊥) ∈ S.Γ.fmls)
   : ⊢ᵍ S := initBot_memₕ (k := 0) x h |>.drv
 
 end
@@ -554,6 +510,12 @@ def exchangeFmlLₕ :
   simp_rw [←Multiset.singleton_add];
   abel;
 
+def exchangeFmlL
+  (d : ⊢ᵍ (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ Φ, X⟩ ⟹ Δ))
+  : ⊢ᵍ (⟨(y ∶ ψ) ::ₘ (x ∶ φ) ::ₘ Φ, X⟩ ⟹ Δ)
+  := exchangeFmlLₕ (k := d.height) ⟨d, by simp⟩ |>.drv
+
+
 def exchangeFml₃Lₕ :
   (⊢ᵍ[k] (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ Φ, X⟩ ⟹ Δ)) →
   (⊢ᵍ[k] (⟨(y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ (x ∶ φ) ::ₘ Φ, X⟩ ⟹ Δ))
@@ -563,6 +525,11 @@ def exchangeFml₃Lₕ :
     tauto;
   simp_rw [←Multiset.singleton_add];
   abel;
+
+def exchangeFml₃L
+  (d : ⊢ᵍ (⟨(x ∶ φ) ::ₘ (y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ Φ, X⟩ ⟹ Δ))
+  : ⊢ᵍ (⟨(y ∶ ψ) ::ₘ (z ∶ ξ) ::ₘ (x ∶ φ) ::ₘ Φ, X⟩ ⟹ Δ)
+  := exchangeFml₃Lₕ (k := d.height) ⟨d, by simp⟩ |>.drv
 
 end
 
