@@ -1,5 +1,3 @@
-import LabelledSystem.Gentzen.Weakening
-import LabelledSystem.Gentzen.Inverted
 import LabelledSystem.Gentzen.Cut
 
 namespace LO.Modal
@@ -52,8 +50,7 @@ def axiomK : ⊢ᵍ ↑(□(φ ➝ ψ) ➝ □φ ➝ □ψ) := by
   . exact initFml_mem 1 φ (by simp) (by simp);
   . exact initFml_mem 1 ψ (by simp) (by simp);
 
-def mdp (d₁ : ⊢ᵍ ↑(φ ➝ ψ)) (d₂ : ⊢ᵍ ↑φ) : ⊢ᵍ ↑ψ := by
-  simpa using cutFml (Δ₁ := ⟨∅, ∅⟩) (Δ₂ := ⟨{_ ∶ ψ}, ∅⟩) d₂ $ implyRInv (Δ := ⟨∅, ∅⟩) d₁;
+noncomputable def mdp (d₁ : ⊢ᵍ ↑(φ ➝ ψ)) (d₂ : ⊢ᵍ ↑φ) : ⊢ᵍ ↑ψ := cutFmlₐ 0 φ d₂ (implyRInvₐ d₁)
 
 noncomputable def necessitation (d : ⊢ᵍ ↑φ) : ⊢ᵍ ↑(□φ) := by
   apply boxRₐ 0 1 φ (by simp) (by simp [isFreshLabel]) (by simp [isFreshLabel]);

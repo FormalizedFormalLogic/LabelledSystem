@@ -14,6 +14,11 @@ def implyRInv
   : ⊢ᵍ (⟨(x ∶ φ) ::ₘ S.Γ.fmls, S.Γ.rels⟩ ⟹ ⟨(x ∶ ψ) ::ₘ S.Δ.fmls, S.Δ.rels⟩)
   := implyRInvₕ (d := .ofDerivation d) |>.drv
 
+def implyRInvₐ
+  (d : ⊢ᵍ (⟨Φ, X⟩ ⟹ ⟨(x ∶ φ ➝ ψ) ::ₘ Ψ, Y⟩))
+  : ⊢ᵍ (⟨(x ∶ φ) ::ₘ Φ, X⟩ ⟹ ⟨(x ∶ ψ) ::ₘ Ψ, Y⟩)
+  := implyRInv (S := ⟨Φ, X⟩ ⟹ ⟨Ψ, Y⟩) d
+
 
 def implyLInv₁ₕ
   (d : ⊢ᵍ[h] (⟨(x ∶ φ ➝ ψ) ::ₘ S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ))
