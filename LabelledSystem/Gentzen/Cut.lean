@@ -1,11 +1,21 @@
-import LabelledSystem.Gentzen.Basic
+import LabelledSystem.Gentzen.Contraction
 
 namespace LO.Modal.Labelled.Gentzen
 
-def cutRel (d₁ : ⊢ᵍ Γ₁ ⟹ ⟨Δ₁.fmls, (x, y) ::ₘ Δ₁.rels⟩) (d₂ : ⊢ᵍ ⟨Γ₂.fmls, (x, y) ::ₘ Γ₂.rels⟩ ⟹ Δ₂) : ⊢ᵍ (Γ₁ + Γ₂) ⟹ (Δ₁ + Δ₂) := by
+variable {S₁ S₂ : Sequent}
+
+noncomputable def cutRel
+  (d₁ : ⊢ᵍ S₁.Γ ⟹ ⟨S₁.Δ.fmls, (x, y) ::ₘ S₁.Δ.rels⟩)
+  (d₂ : ⊢ᵍ ⟨S₂.Γ.fmls, (x, y) ::ₘ S₂.Γ.rels⟩ ⟹ S₂.Δ)
+  : ⊢ᵍ (S₁.Γ + S₂.Γ) ⟹ (S₁.Δ + S₂.Δ) := by
   sorry
 
-def cutFml (d₁ : ⊢ᵍ Γ₁ ⟹ ⟨(x ∶ φ) ::ₘ Δ₁.fmls, Δ₁.rels⟩) (d₂ : ⊢ᵍ ⟨(x ∶ φ) ::ₘ Γ₂.fmls, Γ₂.rels⟩ ⟹ Δ₂) : ⊢ᵍ (Γ₁ + Γ₂) ⟹ (Δ₁ + Δ₂) := by
-  sorry
+noncomputable def cutFml
+  (d₁ : ⊢ᵍ S₁.Γ ⟹ ⟨(x ∶ φ) ::ₘ S₁.Δ.fmls, S₁.Δ.rels⟩)
+  (d₂ : ⊢ᵍ ⟨(x ∶ φ) ::ₘ S₂.Γ.fmls, S₂.Γ.rels⟩ ⟹ S₂.Δ)
+  : ⊢ᵍ (S₁.Γ + S₂.Γ) ⟹ (S₁.Δ + S₂.Δ) := by
+  let c := φ.complexity
+  induction c with
+  | _ => sorry;
 
 end LO.Modal.Labelled.Gentzen

@@ -9,7 +9,7 @@ namespace LO.Modal.Labelled.Gentzen
 open SequentPart
 open DerivationWithHeight
 
-noncomputable def wkFmlLₕ (d : ⊢ᵍ[k] S) : ⊢ᵍ[k] ⟨(x ∶ φ) ::ₘ S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ := by
+noncomputable def wkFmlLₕ {x φ} (d : ⊢ᵍ[k] S) : ⊢ᵍ[k] ⟨(x ∶ φ) ::ₘ S.Γ.fmls, S.Γ.rels⟩ ⟹ S.Δ := by
   induction d using DerivationWithHeight.rec' generalizing x with
   | hAtom y a => exact initAtom_memₕ y a (by simp) (by simp);
   | hBot y => exact initBot_memₕ y (by simp);

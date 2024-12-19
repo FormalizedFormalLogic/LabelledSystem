@@ -31,6 +31,9 @@ lemma specific_ne (h : x ≠ y) : (x ↦ z) y = y := by
   simp [h];
   tauto;
 
+@[simp]
+lemma specific_id : (x ↦ y) y = y := by simp
+
 end LabelReplace
 
 
